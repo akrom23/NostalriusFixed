@@ -545,8 +545,7 @@ CREATE TABLE `creature_template` (
   `equipment_id` mediumint(8) unsigned NOT NULL DEFAULT '0',
   `trainer_id` mediumint(8) unsigned NOT NULL DEFAULT '0',
   `vendor_id` mediumint(8) unsigned NOT NULL DEFAULT '0',
-  `MechanicImmuneMask` int(10) unsigned NOT NULL DEFAULT '0',
-  `SchoolImmuneMask` tinyint(3) unsigned NOT NULL DEFAULT '0',
+  `mechanic_immune_mask` int(10) unsigned NOT NULL DEFAULT '0',
   `flags_extra` int(10) unsigned NOT NULL DEFAULT '0',
   `ScriptName` char(64) NOT NULL DEFAULT '',
   PRIMARY KEY (`entry`)

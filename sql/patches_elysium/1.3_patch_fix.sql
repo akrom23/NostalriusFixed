@@ -41,9 +41,6 @@ UPDATE `game_event` SET `disabled` = 0 WHERE `entry` IN
 161					-- Patch 1.3
 );
 
--- Black Lotus is BoP now
-UPDATE item_template SET bonding = '1' WHERE entry = '13468';
-
 -- disable Alterac Valley 1.5
 UPDATE `battleground_template` SET `MinLvl` = 61, `MaxLvl` = 61 WHERE `id` = 1;
 

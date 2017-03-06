@@ -23,7 +23,6 @@
 
 #include "ConfusedMovementGenerator.h"
 #include "FleeingMovementGenerator.h"
-#include "FearMovementGenerator.h"
 #include "HomeMovementGenerator.h"
 #include "IdleMovementGenerator.h"
 #include "PointMovementGenerator.h"
@@ -412,22 +411,6 @@ void MotionMaster::MoveFleeing(Unit* enemy, uint32 time)
             Mutate(new TimedFleeingMovementGenerator(enemy->GetObjectGuid(), time));
         else
             Mutate(new FleeingMovementGenerator<Creature>(enemy->GetObjectGuid()));
-    }
-}
-
-void MotionMaster::MoveFeared(Unit* enemy, uint32 time)
-{
-    if (!enemy)
-        return;
-
-    if (m_owner->GetTypeId() == TYPEID_PLAYER)
-        Mutate(new FearMovementGenerator<Player>(enemy->GetObjectGuid()));
-    else
-    {
-        if (time)
-            Mutate(new TimedFearMovementGenerator(enemy->GetObjectGuid(), time));
-        else
-            Mutate(new FearMovementGenerator<Creature>(enemy->GetObjectGuid()));
     }
 }
 

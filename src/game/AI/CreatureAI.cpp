@@ -125,30 +125,6 @@ CanCastResult CreatureAI::DoCastSpellIfCan(Unit* pTarget, uint32 uiSpell, uint32
     return CAST_FAIL_IS_CASTING;
 }
 
-void CreatureAI::ClearTargetIcon()
-// Clears any group/raid icons this creature may have
-{
-    Map::PlayerList const& players = m_creature->GetMap()->GetPlayers();
-
-    if (players.isEmpty())
-        return;
-
-    std::set<Group*> instanceGroups;
-
-    // Clear target icon for every unique group in instance
-    for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-    {
-        if (Group* pGroup = itr->getSource()->GetGroup())
-        {
-            if (instanceGroups.find(pGroup) == instanceGroups.end())
-            {
-                instanceGroups.insert(pGroup);
-                pGroup->ClearTargetIcon(m_creature->GetObjectGuid());
-            }
-        }
-    }
-}
-
 void CreatureAI::SetGazeOn(Unit *target)
 {
     if (m_creature->canAttack(target))

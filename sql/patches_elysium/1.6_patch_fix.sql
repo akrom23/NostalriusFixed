@@ -124,13 +124,3 @@ INSERT INTO npc_vendor VALUES
 ('7955', '18772', '0', '0'),
 ('7955', '18773', '0', '0'),
 ('7955', '18774', '0', '0');
-
--- Black Lotus is BoP now
-UPDATE item_template SET bonding = '1' WHERE entry = '13468';
-
--- Welcome Back Bor Wildmane NPC#15306
-
-UPDATE creature_template SET `entry`='15306', `KillCredit1`='0', `KillCredit2`='0', `modelid_1`='15370', `modelid_2`='0', `modelid_3`='0', `modelid_4`='0', `name`='Bor Wildmane', `subname`=NULL, `gossip_menu_id`='0', `minlevel`='56', `maxlevel`='56', `minhealth`='4231', `maxhealth`='4231', `minmana`='0', `maxmana`='0', `armor`='0', `faction_A`='635', `faction_H`='635', `npcflag`='3', `speed_walk`='1.1', `speed_run`='1.14286', `scale`='1.35', `rank`='0', `mindmg`='153', `maxdmg`='206', `dmgschool`='0', `attackpower`='254', `dmg_multiplier`='1', `baseattacktime`='2000', `rangeattacktime`='2000', `unit_class`='1', `unit_flags`='32768', `dynamicflags`='0', `family`='0', `trainer_type`='0', `trainer_spell`='0', `trainer_class`='0', `trainer_race`='0', `minrangedmg`='70.9632', `maxrangedmg`='97.5744', `rangedattackpower`='100', `type`='7', `type_flags`='0', `lootid`='0', `pickpocketloot`='0', `skinloot`='0', `resistance1`='0', `resistance2`='0', `resistance3`='0', `resistance4`='0', `resistance5`='0', `resistance6`='0', `spell1`='0', `spell2`='0', `spell3`='0', `spell4`='0', `PetSpellDataId`='0', `mingold`='0', `maxgold`='0', `AIName`='', `MovementType`='0', `InhabitType`='3', `Civilian`='0', `RacialLeader`='0', `RegenHealth`='1', `equipment_id`='170', `trainer_id`='0', `vendor_id`='0', `mechanic_immune_mask`='0', `flags_extra`='2', `ScriptName`='' WHERE (`entry`='15306');
-DELETE FROM creature WHERE id=15306;
-INSERT INTO creature (`id`, `map`, `modelid`, `equipment_id`, `position_x`, `position_y`, `position_z`, `orientation`, `spawntimesecs`, `spawndist`, `currentwaypoint`, `curhealth`, `curmana`, `DeathState`, `MovementType`, `spawnFlags`) VALUES ('15306', '1', '0', '170', '-6836.01', '845.531', '49.0809', '5.95157', '300', '5', '0', '4231', '0', '0', '0', '0');
-

@@ -183,7 +183,7 @@ void Totem::SetTypeBySummonSpell(SpellEntry const * spellProto)
         m_type = TOTEM_STATUE;                              //Jewelery statue
 }
 
-bool Totem::IsImmuneToSpellEffect(SpellEntry const *spellInfo, SpellEffectIndex index, bool castOnSelf) const
+bool Totem::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const
 {
     // Check for Mana Spring & Healing Stream totems
     switch (spellInfo->SpellFamilyName)

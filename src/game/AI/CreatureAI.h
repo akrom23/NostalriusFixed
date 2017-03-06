@@ -203,7 +203,7 @@ class MANGOS_DLL_SPEC CreatureAI
         ///== Helper functions =============================
         bool DoMeleeAttackIfReady();
         CanCastResult DoCastSpellIfCan(Unit* pTarget, uint32 uiSpell, uint32 uiCastFlags = 0, ObjectGuid uiOriginalCasterGUID = ObjectGuid());
-        void ClearTargetIcon();
+
         ///== Fields =======================================
 
         // Pointer to controlled by AI creature

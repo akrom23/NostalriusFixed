@@ -27,7 +27,7 @@
 class MANGOS_DLL_SPEC TargetedMovementGeneratorBase
 {
     public:
-        explicit TargetedMovementGeneratorBase(Unit &target) { i_target.link(&target, this); }
+        TargetedMovementGeneratorBase(Unit &target) { i_target.link(&target, this); }
         void stopFollowing() { }
     protected:
         FollowerReference i_target;
@@ -39,8 +39,8 @@ class MANGOS_DLL_SPEC TargetedMovementGeneratorMedium
 {
     protected:
         TargetedMovementGeneratorMedium(Unit &target, float offset, float angle) :
-            TargetedMovementGeneratorBase(target), i_recheckDistance(0), i_offset(offset),
-            i_angle(angle), i_recalculateTravel(false), i_targetReached(false),
+            TargetedMovementGeneratorBase(target), i_offset(offset), i_angle(angle),
+            i_recalculateTravel(false), i_targetReached(false), i_recheckDistance(0),
             i_reachable(true), _targetLastX(0), _targetLastY(0), _targetLastZ(0), _targetOnTransport(false)
         {
         }
@@ -79,7 +79,7 @@ template<class T>
 class MANGOS_DLL_SPEC ChaseMovementGenerator : public TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >
 {
     public:
-        explicit ChaseMovementGenerator(Unit &target)
+        ChaseMovementGenerator(Unit &target)
             : TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >(target) {}
         ChaseMovementGenerator(Unit &target, float offset, float angle)
             : TargetedMovementGeneratorMedium<T, ChaseMovementGenerator<T> >(target, offset, angle) {}
@@ -91,7 +91,7 @@ class MANGOS_DLL_SPEC ChaseMovementGenerator : public TargetedMovementGeneratorM
         void Finalize(T &);
         void Interrupt(T &);
         void Reset(T &);
-        void MovementInform(T &);
+        void MovementInform(T*);
 
         static void _clearUnitStateMove(T &u) { u.clearUnitState(UNIT_STAT_CHASE_MOVE); }
         static void _addUnitStateMove(T &u)  { u.addUnitState(UNIT_STAT_CHASE_MOVE); }
@@ -104,7 +104,7 @@ template<class T>
 class MANGOS_DLL_SPEC FollowMovementGenerator : public TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >
 {
     public:
-        explicit FollowMovementGenerator(Unit &target)
+        FollowMovementGenerator(Unit &target)
             : TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >(target){}
         FollowMovementGenerator(Unit &target, float offset, float angle)
             : TargetedMovementGeneratorMedium<T, FollowMovementGenerator<T> >(target, offset, angle) {}
@@ -116,7 +116,7 @@ class MANGOS_DLL_SPEC FollowMovementGenerator : public TargetedMovementGenerator
         void Finalize(T &);
         void Interrupt(T &);
         void Reset(T &);
-        void MovementInform(T &);
+        void MovementInform(T*);
 
         static void _clearUnitStateMove(T &u) { u.clearUnitState(UNIT_STAT_FOLLOW_MOVE); }
         static void _addUnitStateMove(T &u)  { u.addUnitState(UNIT_STAT_FOLLOW_MOVE); }

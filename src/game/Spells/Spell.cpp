@@ -281,11 +281,15 @@ Spell::Spell(Unit* caster, SpellEntry const *info, bool triggered, ObjectGuid or
 
     m_spellSchoolMask = GetSpellSchoolMask(info);           // Can be override for some spell (wand shoot for example)
 
-    // wand case
     if (m_attackType == RANGED_ATTACK)
-        if (!!(m_caster->getClassMask() & CLASSMASK_WAND_USERS) && m_caster->GetTypeId() == TYPEID_PLAYER)
-            m_spellSchoolMask = GetSchoolMask(m_caster->GetWeaponDamageSchool(RANGED_ATTACK));
-
+    {
+        // wand case
+        if ((m_caster->getClassMask() & CLASSMASK_WAND_USERS) != 0 && m_caster->GetTypeId() == TYPEID_PLAYER)
+        {
+            if (Item* pItem = ((Player*)m_caster)->GetWeaponForAttack(RANGED_ATTACK))
+                m_spellSchoolMask = GetSchoolMask(pItem->GetProto()->Damage[0].DamageType);
+        }
+    }
     // Set health leech amount to zero
     m_healthLeech = 0;
 
@@ -868,7 +872,7 @@ void Spell::CheckAtDelay(TargetInfo* pInf)
         }
     }
     if (pTarget != m_caster &&
-            (pTarget->IsImmuneToDamage(GetSpellSchoolMask(m_spellInfo)) || pTarget->IsImmuneToSpell(m_spellInfo, pTarget == m_caster)))
+            (pTarget->IsImmunedToDamage(GetSpellSchoolMask(m_spellInfo)) || pTarget->IsImmuneToSpell(m_spellInfo)))
         pInf->missCondition = SPELL_MISS_IMMUNE;
 }
 
@@ -1297,8 +1301,8 @@ void Spell::DoSpellHitOnUnit(Unit *unit, uint32 effectMask, bool isReflected)
 
     // Recheck immune (only for delayed spells)
     if (m_caster != unit && m_spellInfo->speed && (
-                unit->IsImmuneToDamage(GetSpellSchoolMask(m_spellInfo)) ||
-                unit->IsImmuneToSpell(m_spellInfo, unit == realCaster)))
+                unit->IsImmunedToDamage(GetSpellSchoolMask(m_spellInfo)) ||
+                unit->IsImmuneToSpell(m_spellInfo)))
     {
         if (realCaster)
             realCaster->SendSpellMiss(unit, m_spellInfo->Id, SPELL_MISS_IMMUNE);
@@ -1745,6 +1749,12 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
         {
             switch (m_spellInfo->Id)
             {
+                case 24811:                                 // Draw Spirit (Lethon)
+                {
+                    if (effIndex == EFFECT_INDEX_0)         // Copy range from EFF_1 to 0
+                        radius = GetSpellRadius(sSpellRadiusStore.LookupEntry(m_spellInfo->EffectRadiusIndex[EFFECT_INDEX_1]));
+                    break;
+                }
                 case 28241:                                 // Poison (Naxxramas, Grobbulus Cloud)
                 {
                     if (SpellAuraHolder* auraHolder = m_caster->GetSpellAuraHolder(28158))
@@ -2251,79 +2261,8 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
             break;
         }
         case TARGET_LARGE_FRONTAL_CONE:
-        {
-            switch (m_spellInfo->Id)
-            {
-            case 24820:
-            case 24821:
-            case 24822:
-            case 24823:
-            case 24835:
-            case 24836:
-            case 24837:
-            case 24838:
-            {
-                UnitList tempTargetUnitMap;
-                FillAreaTargets(tempTargetUnitMap, radius, PUSH_SELF_CENTER, SPELL_TARGETS_AOE_DAMAGE);
-
-                for (UnitList::const_iterator itr = tempTargetUnitMap.begin(); itr != tempTargetUnitMap.end(); ++itr)
-                {
-                    float angle;
-                    float arc;
-
-                    switch (m_spellInfo->Id)
-                    {
-                    case 24820:
-                        angle = 0.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    case 24821:
-                        angle = 1.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    case 24822:
-                        angle = 2.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    case 24823:
-                        angle = 3.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    case 24835:
-                        angle = -4.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    case 24836:
-                        angle = -3.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    case 24837:
-                        angle = -2.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    case 24838:
-                        angle = -1.0f * M_PI_F / 4.0f;
-                        arc = 2.0f * M_PI_F / 3.0f;
-                        break;
-                    default:
-                        angle = 0.0f;
-                        arc = M_PI_F / 2.0f;
-                        break;
-                    }
-
-                    if (m_caster->HasInArc(arc, *itr, angle))
-                        targetUnitMap.push_back(*itr);                
-                }
-
-                break;
-            }                
-            default:
-                FillAreaTargets(targetUnitMap, radius, PUSH_IN_FRONT_90, SPELL_TARGETS_AOE_DAMAGE);
-                break;
-            }
-
+            FillAreaTargets(targetUnitMap, radius, PUSH_IN_FRONT_90, SPELL_TARGETS_AOE_DAMAGE);
             break;
-        }            
         case TARGET_NARROW_FRONTAL_CONE:
             FillAreaTargets(targetUnitMap, radius, PUSH_IN_FRONT_15, SPELL_TARGETS_AOE_DAMAGE);
             break;
@@ -2731,10 +2670,6 @@ void Spell::SetTargetMap(SpellEffectIndex effIndex, uint32 targetMode, UnitList&
                             if (Player* owner = ObjectAccessor::FindPlayer(corpse->GetOwnerGuid()))
                                 targetUnitMap.push_back(owner);
                     }
-                    break;
-                case SPELL_EFFECT_TELEPORT_UNITS_FACE_CASTER:
-                    if (!(m_targets.m_targetMask & TARGET_FLAG_DEST_LOCATION))
-                        m_targets.setDestination(m_caster->GetPositionX(), m_caster->GetPositionY(), m_caster->GetPositionZ());
                     break;
                 default:
                     break;
@@ -4809,8 +4744,10 @@ SpellCastResult Spell::CheckCast(bool strict)
         }
 
         if (IsPositiveSpell(m_spellInfo->Id))
-            if (target->IsImmuneToSpell(m_spellInfo, target == m_caster))
+        {
+            if (target->IsImmuneToSpell(m_spellInfo))
                 return SPELL_FAILED_TARGET_AURASTATE;
+        }
 
         //Must be behind the target.
         if (m_spellInfo->AttributesEx2 == 0x100000 && (m_spellInfo->AttributesEx & 0x200) == 0x200 && target->HasInArc(M_PI_F, m_caster))
@@ -6134,7 +6071,7 @@ SpellCastResult Spell::CheckRange(bool strict)
                     range_mod += modOwner->ApplySpellMod(m_spellInfo->Id, SPELLMOD_RANGE, base, this);
 
                 // with additional 5 dist for non stricted case (some melee spells have delay in apply
-                return m_caster->CanReachWithMeleeSpellAttack(target, range_mod) ? SPELL_CAST_OK : SPELL_FAILED_OUT_OF_RANGE;
+                return m_caster->IsWithinMeleeRange(target, range_mod) ? SPELL_CAST_OK : SPELL_FAILED_OUT_OF_RANGE;
             }
             break;                                          // let continue in generic way for no target
         }

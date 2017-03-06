@@ -1553,7 +1553,6 @@ struct npc_pats_firework_guyAI : ScriptedAI
             {
                 m_bExist = true;
                 m_bisLucky = m_creature->GetEntry() == NPC_FIREWORK_GUY_ELUNE;
-                m_uiIndex = i;
                 break;
             }
         }

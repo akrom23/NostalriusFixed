@@ -28,7 +28,7 @@
 #include "CellImpl.h"
 
 OPvPCapturePoint::OPvPCapturePoint(OutdoorPvP * pvp):
-    m_capturePointGUID(0), m_capturePoint(nullptr), m_maxValue(0), m_minValue(0), m_maxSpeed(0),
+    m_capturePointGUID(0), m_capturePoint(NULL), m_maxValue(0), m_minValue(0), m_maxSpeed(0),
     m_value(0), m_team(TEAM_NEUTRAL), m_OldState(OBJECTIVESTATE_NEUTRAL),
     m_State(OBJECTIVESTATE_NEUTRAL), m_neutralValuePct(0), m_PvP(pvp)
 {
@@ -229,7 +229,7 @@ OutdoorPvP::OutdoorPvP() : ZoneScript(), m_objective_changed(false), m_TypeId(0)
 {
 }
 
-ZoneScript::ZoneScript() : m_pMap(nullptr)
+ZoneScript::ZoneScript() : m_pMap(NULL)
 {
 }
 
@@ -443,7 +443,7 @@ void OutdoorPvP::HandleKill(Player *killer, Unit * killed)
 {
     if (Group * pGroup = killer->GetGroup())
     {
-        for (GroupReference *itr = pGroup->GetFirstMember(); itr != nullptr; itr = itr->next())
+        for (GroupReference *itr = pGroup->GetFirstMember(); itr != NULL; itr = itr->next())
         {
             Player *pGroupGuy = itr->getSource();
 
@@ -598,7 +598,7 @@ void OutdoorPvP::OnGameObjectRemove(GameObject *go)
         return;
 
     if (OPvPCapturePoint *cp = GetCapturePoint(go->GetDBTableGUIDLow()))
-        cp->m_capturePoint = nullptr;
+        cp->m_capturePoint = NULL;
 }
 
 Creature* ZoneScript::GetCreature(ObjectGuid guid)

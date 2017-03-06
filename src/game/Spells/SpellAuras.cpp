@@ -1081,6 +1081,29 @@ void Aura::TriggerSpell()
                             target->CastSpell(target, 23171, true, nullptr, this);
                         return;
                     }
+                    case 23184:                             // Mark of Frost
+                    case 25041:                             // Mark of Nature
+                    {
+                        std::list<Player*> targets;
+
+                        // spells existed in 1.x.x; 23183 - mark of frost; 25042 - mark of nature; both had radius of 100.0 yards in 1.x.x DBC
+                        // spells are used by Azuregos and the Emerald dragons in order to put a stun debuff on the players which resurrect during the encounter
+                        // in order to implement the missing spells we need to make a grid search for hostile players and check their auras; if they are marked apply debuff
+
+                        // Mark of Frost or Mark of Nature
+                        uint32 markSpellId = auraId == 23184 ? 23182 : 25040;
+                        // Aura of Frost or Aura of Nature
+                        uint32 debufSpellId = auraId == 23184 ? 23186 : 25043;
+
+                        MaNGOS::AnyPlayerInObjectRangeWithAuraCheck u_check(GetTarget(), 100.0f, markSpellId);
+                        MaNGOS::PlayerListSearcher<MaNGOS::AnyPlayerInObjectRangeWithAuraCheck > checker(targets, u_check);
+                        Cell::VisitWorldObjects(GetTarget(), checker, 100.0f);
+
+                        for (std::list<Player*>::iterator itr = targets.begin(); itr != targets.end(); ++itr)
+                            (*itr)->CastSpell((*itr), debufSpellId, true, nullptr, nullptr, casterGUID);
+
+                        return;
+                    }
                     case 23493:                             // Restoration
                     {
                         int32 heal = triggerTarget->GetMaxHealth() / 10;
@@ -1109,9 +1132,28 @@ void Aura::TriggerSpell()
 //                    case 24832: break;
                     case 24834:                             // Shadow Bolt Whirl
                     {
-                        uint32 spellForTick[8] = { 24820, 24821, 24822, 24823, 24835, 24836, 24837, 24838 };
+                        // Lethon sends 4 volleys to the left, then 4 to the right, etc ...
+                        uint32 spellForTick[8] = {
+                            // All these spells have the same effect: shadowbolt volley in a cone in front of the caster
+                            24820,
+                            24821,
+                            24822,
+                            24823,
+                            24835,
+                            24836,
+                            24837,
+                            24838 };
+
                         trigger_spell_id = spellForTick[GetAuraTicks() % 8];
-                        break;
+                        int tick = ((GetAuraTicks() % 8) / 4) % 2; // tick=0 => Left. Tick=1 => Right.
+
+                        // Really sad to hack here, but no way to do this properly in MaNGOS for now :/
+                        float orientationBefore = target->GetOrientation();
+                        float angle = target->GetOrientation() - ((tick * 2 - 1) * M_PI_F / 2);
+                        target->SetOrientation(angle);
+                        triggerTarget->CastSpell(triggerTarget, trigger_spell_id, true, nullptr, this, casterGUID);
+                        target->SetOrientation(orientationBefore);
+                        return;
                     }
 //                    // Stink Trap
 //                    case 24918: break;
@@ -1617,25 +1659,6 @@ void Aura::HandleAuraDummy(bool apply, bool Real)
                     caster->CastSpell(caster, 12816, true);
 
                 return;
-            }
-            case 24906:                                     // Emeriss Aura
-            {
-                if (m_removeMode == AURA_REMOVE_BY_DEATH)
-                    target->CastSpell(target, 24904, true, nullptr, this);
-
-                return;
-            }
-            case 25042:                                     // Mark of Nature
-            {
-                if (m_removeMode == AURA_REMOVE_BY_DEATH)
-                    target->CastSpell(target, 25040, true, nullptr, this);
-                return;
-            }
-            case 23183:                                     // Mark of Frost
-            {
-                if (m_removeMode == AURA_REMOVE_BY_DEATH)
-                    target->CastSpell(target, 23182, true, nullptr, this);
-                    return;
             }
             case 28169:                                     // Mutating Injection
             {
@@ -4884,7 +4907,7 @@ void Aura::PeriodicTick(SpellEntry const* sProto, AuraType auraType, uint32 data
                 return;
 
             // Check for immune (not use charges)
-            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)) && !(spellProto->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY))
+            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)) && !(spellProto->Attributes & SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY))
                 return;
 
             uint32 absorb = 0;
@@ -4993,7 +5016,7 @@ void Aura::PeriodicTick(SpellEntry const* sProto, AuraType auraType, uint32 data
                 return;
 
             // Check for immune
-            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)))
+            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)))
                 return;
 
             uint32 absorb = 0;
@@ -5183,7 +5206,7 @@ void Aura::PeriodicTick(SpellEntry const* sProto, AuraType auraType, uint32 data
                 return;
 
             // Check for immune (not use charges)
-            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)))
+            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)))
                 return;
 
             // ignore non positive values (can be result apply spellmods to aura damage
@@ -5307,7 +5330,7 @@ void Aura::PeriodicTick(SpellEntry const* sProto, AuraType auraType, uint32 data
                 return;
 
             // Check for immune (not use charges)
-            if (target->IsImmuneToDamage(GetSpellSchoolMask(spellProto)))
+            if (target->IsImmunedToDamage(GetSpellSchoolMask(spellProto)))
                 return;
 
             int32 pdamage = m_modifier.m_amount > 0 ? m_modifier.m_amount : 0;
@@ -6481,8 +6504,6 @@ void Aura::CalculatePeriodic(Player * modOwner, bool create)
         case 14299: // Immolation Trap Effect (Rank 3)
         case 14300: // Immolation Trap Effect (Rank 4)
         case 14301: // Immolation Trap Effect (Rank 5)
-        case 23184: // Mark of Frost
-        case 25041: // Mark of Nature
             break;
         default:
             m_periodicTimer = m_modifier.periodictime;

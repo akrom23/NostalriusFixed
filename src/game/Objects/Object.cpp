@@ -1438,7 +1438,8 @@ bool WorldObject::HasInArc(const float arcangle, const float x, const float y) c
     return ((angle >= lborder) && (angle <= rborder));
 }
 
-bool WorldObject::HasInArc(const float arcangle, const WorldObject* obj, float offset) const
+// Nostalrius: 'obj' peut etre NULL.
+bool WorldObject::HasInArc(const float arcangle, const WorldObject* obj) const
 {
     // always have self in arc
     if (obj == this)
@@ -1450,7 +1451,7 @@ bool WorldObject::HasInArc(const float arcangle, const WorldObject* obj, float o
     arc = MapManager::NormalizeOrientation(arc);
 
     float angle = GetAngle(obj);
-    angle -= m_position.o + offset;
+    angle -= m_position.o;
 
     // move angle to range -pi ... +pi
     angle = MapManager::NormalizeOrientation(angle);

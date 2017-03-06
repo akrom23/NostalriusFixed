@@ -369,7 +369,7 @@ bool Unit::UpdateMeleeAttackingState()
         return false;
 
     uint8 swingError = 0;
-    if (!CanReachWithMeleeAttack(victim))
+    if (!CanReachWithAutoAttack(victim))
     {
         setAttackTimer(BASE_ATTACK, 100);
         setAttackTimer(OFF_ATTACK, 100);
@@ -1147,9 +1147,6 @@ void Unit::Kill(Unit* pVictim, SpellEntry const *spellProto, bool durabilityLoss
 
         if (!creature->IsPet())
         {
-            creature->LogDeath(this);
-            creature->UpdateCombatState(false);
-
             creature->DeleteThreatList();
             if (CreatureInfo const *cinfo = creature->GetCreatureInfo())
                 if (cinfo->lootid || cinfo->maxgold > 0)
@@ -1550,7 +1547,7 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
             ? GetSchoolMask(GetWeaponDamageSchool(damageInfo->attackType, i))
             : GetMeleeDamageSchoolMask();
 
-        if (damageInfo->target->IsImmuneToDamage(subDamage->damageSchoolMask))
+        if (damageInfo->target->IsImmunedToDamage(subDamage->damageSchoolMask))
         {
             subDamage->damage = 0;
             continue;
@@ -2984,7 +2981,7 @@ SpellMissInfo Unit::SpellHitResult(Unit *pVictim, SpellEntry const *spell, bool 
         return SPELL_MISS_EVADE;
 
     // Check for immune (use charges)
-    if (pVictim != this && pVictim->IsImmuneToSpell(spell, pVictim == this))
+    if (pVictim != this && pVictim->IsImmuneToSpell(spell))
         return SPELL_MISS_IMMUNE;
 
     // All positive spells can`t miss
@@ -2999,7 +2996,7 @@ SpellMissInfo Unit::SpellHitResult(Unit *pVictim, SpellEntry const *spell, bool 
     else
         schoolMask = GetSpellSchoolMask(spell);
 
-    if (pVictim != this && pVictim->IsImmuneToDamage(schoolMask))
+    if (pVictim != this && pVictim->IsImmunedToDamage(schoolMask))
         return SPELL_MISS_IMMUNE;
 
     // Try victim reflect spell
@@ -6611,7 +6608,7 @@ int32 Unit::SpellBaseHealingBonusTaken(SpellSchoolMask schoolMask)
     return AdvertisedBenefit;
 }
 
-bool Unit::IsImmuneToDamage(SpellSchoolMask shoolMask)
+bool Unit::IsImmunedToDamage(SpellSchoolMask shoolMask)
 {
     // If m_immuneToSchool type contain this school type, IMMUNE damage.
     SpellImmuneList const& schoolList = m_spellImmune[IMMUNITY_SCHOOL];
@@ -6628,7 +6625,7 @@ bool Unit::IsImmuneToDamage(SpellSchoolMask shoolMask)
     return false;
 }
 
-bool Unit::IsImmuneToSpell(SpellEntry const *spellInfo, bool /*castOnSelf*/)
+bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo)
 {
     if (!spellInfo)
         return false;
@@ -6675,7 +6672,7 @@ bool Unit::IsImmuneToSpell(SpellEntry const *spellInfo, bool /*castOnSelf*/)
     return false;
 }
 
-bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool /*castOnSelf*/) const
+bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const
 {
     //If m_immuneToEffect type contain this effect type, IMMUNE effect.
     uint32 effect = spellInfo->Effect[index];
@@ -9286,35 +9283,33 @@ void Unit::StopMoving()
     DisableSpline();
 }
 
-void Unit::SetFleeing(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 time)
-{
-    if (apply && HasAuraType(SPELL_AURA_PREVENTS_FLEEING))
-        return;
-
-    ModConfuseSpell(apply, casterGuid, spellID, MOV_MOD_FLEE_FOR_ASSISTANCE, time);
-}
-
 void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 time)
 {
     if (apply && HasAuraType(SPELL_AURA_PREVENTS_FLEEING))
         return;
-
-    ModConfuseSpell(apply, casterGuid, spellID, MOV_MOD_FLEE_IN_FEAR, time);
+    ModConfuseSpell(apply, casterGuid, spellID, true, time);
 }
 
 void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
 {
-    ModConfuseSpell(apply, casterGuid, spellID, MOV_MOD_CONFUSED, 0);
+    ModConfuseSpell(apply, casterGuid, spellID, false, 0);
 }
 
-void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, MovementModType modType, uint32 time)
+
+
+/**
+NOSTALRIUS
+Fonction utilisee par Unit::SetConfused et Unit::SetFeared
+**/
+void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, bool fear, uint32 time)
 {
+    // Ne s'applique pas aux totems
     if (GetTypeId() == TYPEID_UNIT)
         if (ToCreature()->IsTotem())
             return;
 
     bool controlFinished = true;
-
+    // Encore des sorts de confusion
     if (HasAuraType(SPELL_AURA_MOD_CONFUSE))
     {
         controlFinished = false;
@@ -9337,24 +9332,13 @@ void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, Mo
     {
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
-        switch (modType)
+        if (fear)
         {
-        case MOV_MOD_FLEE_FOR_ASSISTANCE:
-        {
-            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : nullptr;
-            GetMotionMaster()->MoveFleeing(caster, time);
-            break;
+            Unit* caster = IsInWorld() ?  GetMap()->GetUnit(casterGuid) : NULL;
+            GetMotionMaster()->MoveFleeing(caster, time);       // caster==NULL processed in MoveFleeing
         }
-        case MOV_MOD_FLEE_IN_FEAR:
-        {
-            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : nullptr;
-            GetMotionMaster()->MoveFeared(caster, time);
-            break;
-        }            
-        case MOV_MOD_CONFUSED:
+        else
             GetMotionMaster()->MoveConfused();
-            break;
-        }
 
         if (casterGuid != GetObjectGuid())
             InterruptNonMeleeSpells(false);
@@ -9364,21 +9348,11 @@ void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, Mo
     }
     else
     {
-        switch (modType)
-        {
-        case MOV_MOD_FLEE_FOR_ASSISTANCE:
-        case MOV_MOD_FLEE_IN_FEAR:
-        {
-            if (!HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
-                GetMotionMaster()->ClearType(FLEEING_MOTION_TYPE);
-            break;
-        }
-        case MOV_MOD_CONFUSED:
-            if (!HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
-                GetMotionMaster()->ClearType(CONFUSED_MOTION_TYPE);
-            break;
-        }
-
+        if (fear && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
+            GetMotionMaster()->ClearType(FLEEING_MOTION_TYPE);
+        else if (!fear && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
+            GetMotionMaster()->ClearType(CONFUSED_MOTION_TYPE);
+        // Nostalrius :
         // Si spellID=0, c'est pour interrompre (par exemple male de temerite - 704)
         // Donc on retire les effets meme si on a encore un aura de fear.
         if (!controlFinished && spellID)
@@ -9386,14 +9360,13 @@ void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, Mo
 
         if (GetTypeId() != TYPEID_PLAYER && isAlive())
         {
-            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : nullptr;
+            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : NULL;
             if (caster)
                 AttackedBy(caster);
 
             // restore appropriate movement generator
             if (!SelectHostileTarget())
                 return;
-
             if (getVictim())
                 SetTargetGuid(getVictim()->GetObjectGuid());
 
@@ -10419,10 +10392,25 @@ float Unit::GetCombatReach(Unit const* pVictim, bool forMeleeRange /*=true*/, fl
 	return reach;
 }
 
-bool Unit::CanReachWithMeleeAttack(Unit const* pVictim, float flat_mod /*= 0.0f*/) const
+bool Unit::CanReachWithMeleeAttack(Unit const * pVictim, float flat_mod) const
+{
+	if (!pVictim || !pVictim->IsInWorld())
+		return false;
+
+	float reach = GetCombatReach(pVictim, true, flat_mod);
+
+	// This check is not related to bounding radius
+	float dx = GetPositionX() - pVictim->GetPositionX();
+	float dy = GetPositionY() - pVictim->GetPositionY();
+	float dz = GetPositionZ() - pVictim->GetPositionZ();
+
+	return (dx * dx + dy * dy + dz * dz < reach * reach);
+}
+
+bool Unit::CanReachWithAutoAttack(Unit const* pVictim, float flat_mod /*= 0.0f*/) const
 {
     if (!pVictim || !pVictim->IsInWorld())
-        return false;
+		return false;
 
     float reach = GetCombatReach(pVictim, true, flat_mod);
 
@@ -10431,22 +10419,11 @@ bool Unit::CanReachWithMeleeAttack(Unit const* pVictim, float flat_mod /*= 0.0f*
     float dy = GetPositionY() - pVictim->GetPositionY();
     float dz = GetPositionZ() - pVictim->GetPositionZ();
 
-    return (dx * dx + dy * dy < reach * reach) && ((dz * dz) < MELEE_Z_LIMIT);
-}
-
-bool Unit::CanReachWithMeleeSpellAttack(Unit const* pVictim, float flat_mod /*= 0.0f*/) const
-{
-    if (!pVictim || !pVictim->IsInWorld())
+    // Limit vertical reach of melee attacks (e.g. for Onyxia phase 2)
+    if ((dz * dz) > MELEE_Z_LIMIT)
         return false;
 
-    float reach = GetCombatReach(pVictim, true, flat_mod);
-
-    // This check is not related to bounding radius
-    float dx = GetPositionX() - pVictim->GetPositionX();
-    float dy = GetPositionY() - pVictim->GetPositionY();
-
-    // melee spells ignore Z-axis checks
-    return dx * dx + dy * dy < reach * reach;
+    return (dx * dx + dy * dy + dz * dz < reach * reach);
 }
 
 Unit* Unit::GetUnit(WorldObject &obj, uint64 const &Guid)

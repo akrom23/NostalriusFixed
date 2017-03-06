@@ -34,7 +34,7 @@ void AddSC_npc_king_gordok();
 
 //world
 void AddSC_areatrigger_scripts();
-void AddSC_dragons_of_nightmare();
+void AddSC_boss_green_drake();
 void AddSC_boss_lord_kazzak();
 void AddSC_generic_creature();
 void AddSC_go_scripts();
@@ -197,7 +197,6 @@ void AddSC_redridge_mountains();
 void AddSC_searing_gorge();
 void AddSC_silverpine_forest();
 void AddSC_stormwind_city();
-void AddSC_quest_stormwind_rendezvous();
 void AddSC_stranglethorn_vale();
 void AddSC_swamp_of_sorrows();
 void AddSC_tirisfal_glades();
@@ -300,7 +299,7 @@ void AddScripts()
 
     //world
     AddSC_areatrigger_scripts();
-    AddSC_dragons_of_nightmare();
+    AddSC_boss_green_drake();
     AddSC_boss_lord_kazzak();
     AddSC_generic_creature();
     AddSC_go_scripts();
@@ -461,7 +460,6 @@ void AddScripts()
     AddSC_searing_gorge();
     AddSC_silverpine_forest();
     AddSC_stormwind_city();
-    AddSC_quest_stormwind_rendezvous();
     AddSC_stranglethorn_vale();
     AddSC_swamp_of_sorrows();
     AddSC_tirisfal_glades();

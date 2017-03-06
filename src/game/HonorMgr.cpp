@@ -64,7 +64,7 @@ void HonorMaintenancer::LoadWeeklyScores()
 
     std::ostringstream query;
 
-    query << "SELECT `scores`.`guid`, `c`.`level`, `c`.`account`, `c`.`honorRankPoints`, `c`.`honorHighestRank`, SUM(`hk`), SUM(`dk`), SUM(`cp`) FROM"
+    query << "SELECT `scores`.`guid`, `characters`.`level`, `characters`.`account`, `characters`.`honorRankPoints`, SUM(`hk`), SUM(`dk`), SUM(`cp`) FROM"
         "("
         "  SELECT `guid` AS `guid`, COUNT(*) AS `hk`, 0 AS `dk`, SUM(`cp`) AS `cp` FROM `character_honor_cp` WHERE `type` = " << HONORABLE <<
         "  AND (`date` BETWEEN " << weekBeginDay << " AND " << weekEndDay << ") GROUP BY `guid`"
@@ -76,7 +76,7 @@ void HonorMaintenancer::LoadWeeklyScores()
         "  AND (`date` BETWEEN " << weekBeginDay << " AND " << weekEndDay << ") GROUP BY `guid`"
         "  UNION"
         "  SELECT `guid` AS `guid`, 0 AS `hk`, 0 AS `dk`, 0 AS `cp` FROM `characters` WHERE `honorRankPoints` > 0"
-        ") AS `scores` INNER JOIN `characters` AS `c` ON `scores`.`guid` = `c`.`guid` GROUP BY `guid` ORDER BY `guid` ";
+        ") AS `scores` INNER JOIN `characters` ON `scores`.`guid` = `characters`.`guid` GROUP BY `guid` ORDER BY `guid` ";
 
     QueryResult* result = CharacterDatabase.Query(query.str().c_str());
 
@@ -89,10 +89,9 @@ void HonorMaintenancer::LoadWeeklyScores()
             score.level  = fields[1].GetUInt32();
             score.account = fields[2].GetUInt32();
             score.oldRp  = fields[3].GetFloat();
-            score.highestRank = fields[4].GetUInt32();
-            score.hk  = fields[5].GetUInt32();
-            score.dk  = fields[6].GetUInt32();
-            score.cp  = fields[7].GetFloat();
+            score.hk  = fields[4].GetUInt32();
+            score.dk  = fields[5].GetUInt32();
+            score.cp  = fields[6].GetFloat();
             m_weeklyScores[fields[0].GetUInt32()] = score;
         }
         while (result->NextRow());
@@ -189,19 +188,8 @@ void HonorMaintenancer::FlushRankPoints()
     for (auto& pair : m_weeklyScores)
     {
         auto weeklyScore = pair.second;
-
-        HonorRankInfo currentRank = HonorMgr::CalculateRank(weeklyScore.newRp);
-        HonorRankInfo highestRank;
-        HonorMgr::InitRankInfo(highestRank);
-        highestRank.rank = weeklyScore.highestRank;
-        HonorMgr::CalculateRankInfo(highestRank);
-
-        if (currentRank.visualRank > 0 && (currentRank.visualRank > highestRank.visualRank))
-            highestRank = currentRank;
-
-        CharacterDatabase.PExecute("UPDATE `characters` SET `honorHighestRank` = %u, `honorRankPoints` = %.1f, `honorStanding` = %u, "
+        CharacterDatabase.PExecute("UPDATE `characters` SET `honorRankPoints` = %.1f, `honorStanding` = %u, "
             "`honorLastWeekHK` = %u, `honorStoredHK` = (`honorStoredHK` + %u), `honorStoredDK` = (`honorStoredDK` + %u), `honorLastWeekCP` = %.1f WHERE `guid` = %u",
-            highestRank.rank,
             finiteAlways(weeklyScore.newRp), weeklyScore.standing,
             weeklyScore.hk, weeklyScore.hk, weeklyScore.dk,
             finiteAlways(weeklyScore.cp), pair.first);
@@ -792,7 +780,7 @@ void HonorMgr::Update()
         }
     }
 
-    m_rank = CalculateRank(m_rankPoints, m_totalHK);
+    m_rank = CalculateRank(m_rankPoints);
     if (m_rank.visualRank > 0 && (m_rank.visualRank > m_highestRank.visualRank))
         SetHighestRank(m_rank);
 
@@ -867,7 +855,7 @@ uint32 HonorMgr::CalculateTotalKills(Unit* victim) const
     return totalKills;
 }
 
-void HonorMgr::CalculateRankInfo(HonorRankInfo& prk)
+HonorRankInfo HonorMgr::CalculateRankInfo(HonorRankInfo& prk)
 {
     if (prk.rank != 0)
     {
@@ -886,9 +874,11 @@ void HonorMgr::CalculateRankInfo(HonorRankInfo& prk)
     }
     else
         InitRankInfo(prk);
+
+    return prk;
 }
 
-HonorRankInfo HonorMgr::CalculateRank(float rankPoints, uint32 totalHK)
+HonorRankInfo HonorMgr::CalculateRank(float rankPoints)
 {
     HonorRankInfo prk;
     InitRankInfo(prk);
@@ -896,10 +886,10 @@ HonorRankInfo HonorMgr::CalculateRank(float rankPoints, uint32 totalHK)
     // rank none
     if (rankPoints == 0)
     {
-        if (totalHK >= sWorld.getConfig(CONFIG_UINT32_MIN_HONOR_KILLS))
+        if (m_totalHK >= sWorld.getConfig(CONFIG_UINT32_MIN_HONOR_KILLS))
         {
             prk.rank = NEGATIVE_HONOR_RANK_COUNT + 1;
-            CalculateRankInfo(prk);
+            prk = CalculateRankInfo(prk);
         }
         return prk;
     }
@@ -924,7 +914,7 @@ HonorRankInfo HonorMgr::CalculateRank(float rankPoints, uint32 totalHK)
         }
     }
 
-    CalculateRankInfo(prk);
+    prk = CalculateRankInfo(prk);
 
     return prk;
 }

@@ -78,7 +78,7 @@ void PetAI::_stopAttack()
     HandleReturnMovement();
 }
 
-void PetAI::UpdateAI(const uint32 diff)
+void PetAI::UpdateAI(uint32 diff)
 {
     if (!m_creature->isAlive() || !m_creature->GetCharmInfo())
         return;
@@ -130,7 +130,7 @@ void PetAI::UpdateAI(const uint32 diff)
             bool attacked = false;
             if (m_creature->GetCharmInfo()->HasCommandState(COMMAND_STAY))
             {
-                if (m_creature->GetCharmInfo()->IsCommandAttack() || (m_creature->GetCharmInfo()->IsAtStay() && m_creature->CanReachWithMeleeAttack(m_creature->getVictim())))
+                if (m_creature->GetCharmInfo()->IsCommandAttack() || (m_creature->GetCharmInfo()->IsAtStay() && m_creature->IsWithinMeleeRange(m_creature->getVictim())))
                     attacked = DoMeleeAttackIfReady();
             }
             else

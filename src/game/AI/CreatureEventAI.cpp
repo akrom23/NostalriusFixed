@@ -1217,7 +1217,7 @@ void CreatureEventAI::UpdateAI(const uint32 diff)
     }
 
     //Melee Auto-Attack
-    if (Combat && m_MeleeEnabled && m_creature->CanReachWithMeleeAttack(m_creature->getVictim()))
+    if (Combat && m_MeleeEnabled)
         DoMeleeAttackIfReady();
 }
 

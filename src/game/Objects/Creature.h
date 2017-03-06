@@ -137,7 +137,6 @@ struct CreatureInfo
     uint32  trainerId;
     uint32  vendorId;
     uint32  MechanicImmuneMask;
-    uint32  SchoolImmuneMask;
     uint32  flags_extra;
     uint32  ScriptID;
 
@@ -161,7 +160,7 @@ struct CreatureInfo
 
     bool isTameable() const
     {
-        return type == CREATURE_TYPE_BEAST && family != 0 && type_flags & CREATURE_TYPEFLAGS_TAMEABLE;
+        return type == CREATURE_TYPE_BEAST && family != 0 && (type_flags & CREATURE_TYPEFLAGS_TAMEABLE);
     }
 };
 
@@ -331,7 +330,7 @@ struct VendorItemData
     void Clear()
     {
         for (VendorItemList::const_iterator itr = m_items.begin(); itr != m_items.end(); ++itr)
-            delete *itr;
+            delete (*itr);
         m_items.clear();
     }
 };
@@ -530,10 +529,10 @@ class MANGOS_DLL_SPEC Creature : public Unit
         bool IsOutOfThreatArea(Unit* pVictim) const;
         void FillGuidsListFromThreatList(std::vector<ObjectGuid>& guids, uint32 maxamount = 0);
 
-        bool IsImmuneToSpell(SpellEntry const *spellInfo, bool castOnSelf) override;
-        bool IsImmuneToDamage(SpellSchoolMask meleeSchoolMask) override;
-        bool IsImmuneToSpellEffect(SpellEntry const *spellInfo, SpellEffectIndex index, bool castOnSelf) const override;
-
+        bool IsImmuneToSpell(SpellEntry const* spellInfo) override;
+                                                            // redefine Unit::IsImmuneToSpell
+        bool IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const override;
+                                                            // redefine Unit::IsImmuneToSpellEffect
         bool IsElite() const
         {
             if(IsPet())
@@ -693,15 +692,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
         bool _IsTargetAcceptable(Unit const *target) const;
         bool canCreatureAttack(Unit const *pVictim, bool force) const;
 
-        // Smartlog
-        time_t GetCombatTime(bool total) const;
-        void ResetCombatTime(bool combat = false);
-        void UpdateCombatState(bool combat) { m_combatState = combat; }
-        void LogDeath(Unit* pKiller) const;
-        void LogLongCombat() const;
-        void LogScriptInfo(std::ostringstream &data) const;
-        // Smartlog end
-
         Unit* SelectAttackingTarget(AttackingTarget target, uint32 position, uint32 spellId, uint32 selectFlags = SELECT_FLAG_NO_TOTEM) const;
         Unit* SelectAttackingTarget(AttackingTarget target, uint32 position, SpellEntry const* pSpellInfo = nullptr, uint32 selectFlags = SELECT_FLAG_NO_TOTEM) const;
 
@@ -766,6 +756,7 @@ class MANGOS_DLL_SPEC Creature : public Unit
         void   ResetLastDamageTakenTime() { _lastDamageTakenForEvade = 0; }
         uint32 m_TargetNotReachableTimer;
 
+        // Nostalrius
         bool IsTempPacified() const         { return _pacifiedTimer > 0; }
         void SetTempPacified(uint32 timer)  { if (_pacifiedTimer < timer) _pacifiedTimer = timer; }
         uint32 GetTempPacifiedTimer() const { return _pacifiedTimer; }
@@ -835,10 +826,6 @@ class MANGOS_DLL_SPEC Creature : public Unit
         uint32 m_corpseDelay;                               // (secs) delay between death and corpse disappearance
         float m_respawnradius;
 
-        time_t m_combatStartTime;
-        bool m_combatState;
-        uint32 m_combatResetCount;
-
         CreatureSubtype m_subtype;                          // set in Creatures subclasses for fast it detect without dynamic_cast use
         MovementGeneratorType m_defaultMovementType;
         Cell m_currentCell;                                 // store current cell where creature listed
@@ -897,7 +884,7 @@ class AssistDelayEvent : public BasicEvent
 class ForcedDespawnDelayEvent : public BasicEvent
 {
     public:
-        explicit ForcedDespawnDelayEvent(Creature& owner) : BasicEvent(), m_owner(owner) { }
+        ForcedDespawnDelayEvent(Creature& owner) : BasicEvent(), m_owner(owner) { }
         bool Execute(uint64 e_time, uint32 p_time) override;
 
     private:

@@ -891,7 +891,7 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
         return false;
 
     // Attributes check
-    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE)
+    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE_1)
         return false;
 
     // ok, positive
@@ -909,7 +909,7 @@ bool IsPositiveSpell(uint32 spellId)
 
 bool IsPositiveSpell(SpellEntry const *spellproto)
 {
-    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE)
+    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE_1)
         return false;
     // spells with at least one negative effect are considered negative
     // some self-applied spells have negative effects but in self casting case negative check ignored.

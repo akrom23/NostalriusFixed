@@ -60,7 +60,6 @@ enum
     NPC_SUPPRESSOR        = 8497,                           // Npc summoned at one of the two doors and moves to the boss;
 
     NPC_MALFURION         = 15362,
-    AREATRIGGER_MALFURION = 4016,
 
     GO_ALTAR_OF_HAKKAR    = 148836,                         // Used in order to show the player the order of the statue activation
     GO_IDOL_OF_HAKKAR     = 148838,                         // Appears when atalarion is summoned; this was removed in 4.0.1

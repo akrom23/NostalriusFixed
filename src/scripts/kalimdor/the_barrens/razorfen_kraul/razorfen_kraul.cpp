@@ -167,11 +167,7 @@ enum
 {
     SPELL_SNUFFLENOSE_COMMAND   = 8283,
     NPC_SNUFFLENOSE_GOPHER      = 4781,
-    GO_BLUELEAF_TUBER           = 20920,
-
-    SAY_GOPHER_SPAWN            = -1780223,
-    SAY_GOPHER_COMMAND          = -1780224,
-    SAY_GOPHER_FOUND            = -1780225
+    GO_BLUELEAF_TUBBER          = 20920,
 };
 
 struct npc_snufflenose_gopherAI : public FollowerAI
@@ -179,27 +175,18 @@ struct npc_snufflenose_gopherAI : public FollowerAI
     npc_snufflenose_gopherAI(Creature* pCreature) :  FollowerAI(pCreature)
     {
         Reset();
-        DoScriptText(SAY_GOPHER_SPAWN, m_creature);
-
-        // Follow player by default
-        if (Unit* unitOwner = m_creature->GetOwner())
-            if (Player* owner = unitOwner->ToPlayer())
-                StartFollow(owner);
-
-        SetFollowPaused(true);
     }
 
     bool m_bIsMovementActive;
 
-    ObjectGuid m_targetTuberGuid;
-    GuidList m_foundTubers;
-    uint32 m_followPausedTimer;
+    ObjectGuid m_targetTubberGuid;
+    GuidList m_foundTubbers;
 
     void Reset() override
     {
         m_creature->setFaction(35);
         m_bIsMovementActive  = false;
-        m_followPausedTimer = 3000;
+        //m_foundTubbers.clear();
     }
 
     void MovementInform(uint32 uiMoveType, uint32 uiPointId) override
@@ -207,96 +194,70 @@ struct npc_snufflenose_gopherAI : public FollowerAI
         if (uiMoveType != POINT_MOTION_TYPE || !uiPointId)
             return;
 
-        if (!HasFollowState(STATE_FOLLOW_PAUSED))
-            return;
-
-        if (GameObject* pGo = m_creature->GetMap()->GetGameObject(m_targetTuberGuid))
+        if (GameObject* pGo = m_creature->GetMap()->GetGameObject(m_targetTubberGuid))
         {
-            pGo->SetRespawnTime(3 * MINUTE);
+            pGo->SetRespawnTime(5 * MINUTE);
             pGo->Refresh();
 
             pGo->RemoveFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND);
-            m_foundTubers.push_back(m_targetTuberGuid);
+            m_foundTubbers.push_back(m_targetTubberGuid);
         }
 
-        // Wait for 5 seconds after uncovering tuber before following again
-        m_followPausedTimer = 5000; 
         m_bIsMovementActive = false;
     }
 
-    // Function to search for new tuber in range
-    void DoFindNewTuber()
-    {   
-        std::list<GameObject*> lTubersInRange;
-        GetGameObjectListWithEntryInGrid(lTubersInRange, m_creature, GO_BLUELEAF_TUBER, 60.0f);
-
-        if (lTubersInRange.empty())
+    // Function to search for new tubber in range
+    void DoFindNewTubber()
+    {
+        std::list<GameObject*> lTubbersInRange;
+        GetGameObjectListWithEntryInGrid(lTubbersInRange, m_creature, GO_BLUELEAF_TUBBER, 40.0f);
+        if (lTubbersInRange.empty())
             return;
+        lTubbersInRange.sort(ObjectDistanceOrder(m_creature));
+        GameObject* pNearestTubber = NULL;
 
-        lTubersInRange.sort(ObjectDistanceOrder(m_creature));
-        GameObject* pNearestTuber = NULL;
-
+        bool used = false;
         // Always need to find new ones
-        for (std::list<GameObject*>::const_iterator itr = lTubersInRange.begin(); itr != lTubersInRange.end(); ++itr)
+        for (std::list<GameObject*>::const_iterator itr = lTubbersInRange.begin(); itr != lTubbersInRange.end(); ++itr)
         {
-            if (IsValidTuber(*itr))
+            if (!(*itr)->isSpawned() && (*itr)->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) && (*itr)->IsWithinLOSInMap(m_creature))
             {
-                pNearestTuber = *itr;
+                for (std::list<ObjectGuid>::const_iterator itr2 = m_foundTubbers.begin(); itr2 != m_foundTubbers.end(); ++itr2)
+                {
+                    if ((*itr)->GetGUID() == (*itr2))
+                    {
+                        used = true;
+                        break;
+                    }
+                }
+                if (used == true)
+                {
+                    used = false;
+                    continue;
+                }
+                if (fabs(m_creature->GetPositionZ() - (*itr)->GetPositionZ()) > 4 /*z position higher than a couple meters*/)
+                    continue;
+                pNearestTubber = *itr;
                 break;
             }
-
         }
 
-        if (!pNearestTuber)
+        if (!pNearestTubber)
             return;
-
-        DoScriptText(SAY_GOPHER_FOUND, m_creature);
-
-        m_targetTuberGuid = pNearestTuber->GetObjectGuid();
+        m_targetTubberGuid = pNearestTubber->GetObjectGuid();
 
         float fX, fY, fZ;
-        pNearestTuber->GetContactPoint(m_creature, fX, fY, fZ);
+        pNearestTubber->GetContactPoint(m_creature, fX, fY, fZ);
         m_creature->GetMotionMaster()->MovePoint(1, fX, fY, fZ);
         m_bIsMovementActive = true;
         SetFollowPaused(true);
     }
 
-    bool IsValidTuber(GameObject* tuber)
-    {
-        Unit* viewPoint = m_creature;
-
-        // Do LOS checks from Player if exists
-        if (Unit* owner = m_creature->GetOwner())
-            viewPoint = owner;
-
-        if (tuber->isSpawned() || !tuber->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) || !tuber->IsWithinLOSInMap(viewPoint))
-            return false;
-
-        // Check if tuber is in list of already found tubers
-        for (std::list<ObjectGuid>::const_iterator itr2 = m_foundTubers.begin(); itr2 != m_foundTubers.end(); ++itr2)
-            if (tuber->GetObjectGuid() == (*itr2))
-                return false;
-
-        // Check that tuber is not more than 15 yards above or below current position
-        if (fabs(viewPoint->GetPositionZ() - tuber->GetPositionZ()) > 15)
-            return false;
-
-        return true;
-    }
-
     void UpdateAI(const uint32 uiDiff) override
     {
-        if (m_bIsMovementActive)
-            return;
-
-        if (m_followPausedTimer < uiDiff)
-            SetFollowPaused(false);
-        else
-            m_followPausedTimer -= uiDiff;
-
-        FollowerAI::UpdateAI(uiDiff);
+        if (!m_bIsMovementActive)
+            FollowerAI::UpdateAI(uiDiff);
     }
-
 };
 
 CreatureAI* GetAI_npc_snufflenose_gopher(Creature* pCreature)
@@ -311,26 +272,17 @@ bool EffectDummyCreature_npc_snufflenose_gopher(Unit* pCaster, uint32 uiSpellId,
     {
         if (pCreatureTarget->GetEntry() == NPC_SNUFFLENOSE_GOPHER)
         {
-            // Do nothing if player has not targeted gopher
-            if (pCaster->GetTargetGuid() != pCreatureTarget->GetObjectGuid())
-            {
-                // Send Spell_FAILED_BAD_TARGETS
-                pCreatureTarget->SendPetCastFail(uiSpellId, (SpellCastResult)0x0A);
-                return false;
-            }
-
-            DoScriptText(SAY_GOPHER_COMMAND, pCreatureTarget, pCaster);
-
             if (npc_snufflenose_gopherAI* pGopherAI = dynamic_cast<npc_snufflenose_gopherAI*>(pCreatureTarget->AI()))
             {
-                if (pGopherAI->HasFollowState(STATE_FOLLOW_PAUSED))
-                {
-                    pGopherAI->SetFollowPaused(false);
-                    pGopherAI->m_bIsMovementActive = false;
-                    pGopherAI->m_targetTuberGuid = 0;
-                }
+                if (!pGopherAI->HasFollowState(STATE_FOLLOW_INPROGRESS))
+                    pGopherAI->StartFollow(pCaster->ToPlayer());
                 else
-                    pGopherAI->DoFindNewTuber();
+                {
+                    if (pGopherAI->HasFollowState(STATE_FOLLOW_PAUSED))
+                        pGopherAI->SetFollowPaused(false);
+                    else
+                        pGopherAI->DoFindNewTubber();
+                }
             }
         }
         // always return true when we are handling this spell and effect

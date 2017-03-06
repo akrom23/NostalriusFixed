@@ -170,15 +170,14 @@ class SpellEntry
             return SpellFamilyFlags.test<Args...>();
         }
 
-        bool IsAuraAddedBySpell(uint32 auraType) const
+        inline bool IsAuraAddedBySpell(uint32 auraType) const
         {
             for (int i = 0; i < 3; i++)
                 if (EffectApplyAuraName[i] == auraType)
                     return true;
             return false;
         }
-
-        uint32 GetAllSpellMechanicMask() const
+        inline uint32 GetAllSpellMechanicMask() const
         {
             uint32 mask = 0;
             if (Mechanic)
@@ -188,23 +187,23 @@ class SpellEntry
                     mask |= 1 << (EffectMechanic[i]-1);
             return mask;
         }
+            
+        inline bool HasAttribute(SpellAttributes attribute) const { return Attributes & attribute; }
+        inline bool HasAttribute(SpellAttributesEx attribute) const { return AttributesEx & attribute; }
+        inline bool HasAttribute(SpellAttributesEx2 attribute) const { return AttributesEx2 & attribute; }
+        inline bool HasAttribute(SpellAttributesEx3 attribute) const { return AttributesEx3 & attribute; }
+        inline bool HasAttribute(SpellAttributesEx4 attribute) const { return AttributesEx4 & attribute; }
 
-        bool HasAttribute(SpellAttributes attribute) const { return Attributes & attribute; }
-        bool HasAttribute(SpellAttributesEx attribute) const { return AttributesEx & attribute; }
-        bool HasAttribute(SpellAttributesEx2 attribute) const { return AttributesEx2 & attribute; }
-        bool HasAttribute(SpellAttributesEx3 attribute) const { return AttributesEx3 & attribute; }
-        bool HasAttribute(SpellAttributesEx4 attribute) const { return AttributesEx4 & attribute; }
-
-        uint32 GetMechanic() const { return Mechanic; }
-        uint32 GetManaCost() const { return manaCost; }
-        uint32 GetSpellFamilyName() const { return SpellFamilyName; }
-        uint32 GetAuraInterruptFlags() const { return AuraInterruptFlags; }
-        uint32 GetStackAmount() const { return StackAmount; }
-        uint32 GetEffectImplicitTargetAByIndex(SpellEffectIndex j) const { return EffectImplicitTargetA[j];}
-        uint32 GetEffectImplicitTargetBByIndex(SpellEffectIndex j) const { return EffectImplicitTargetB[j];}
-        uint32 GetEffectApplyAuraNameByIndex(SpellEffectIndex j) const { return EffectApplyAuraName[j];}
-        uint32 GetEffectMiscValue(SpellEffectIndex j) const { return EffectMiscValue[j];}
-        ClassFamilyMask GetSpellFamilyFlags() const { return SpellFamilyFlags; }
+        inline uint32 GetMechanic() const { return Mechanic; };
+        inline uint32 GetManaCost() const { return manaCost; };
+        inline uint32 GetSpellFamilyName() const { return SpellFamilyName; };
+        inline uint32 GetAuraInterruptFlags() const { return AuraInterruptFlags; };
+        inline uint32 GetStackAmount() const { return StackAmount; };
+        inline uint32 GetEffectImplicitTargetAByIndex(SpellEffectIndex j) const { return EffectImplicitTargetA[j];};
+        inline uint32 GetEffectImplicitTargetBByIndex(SpellEffectIndex j) const { return EffectImplicitTargetB[j];};
+        inline uint32 GetEffectApplyAuraNameByIndex(SpellEffectIndex j) const { return EffectApplyAuraName[j];};
+        inline uint32 GetEffectMiscValue(SpellEffectIndex j) const { return EffectMiscValue[j];};
+        inline ClassFamilyMask GetSpellFamilyFlags() const { return SpellFamilyFlags; };
 };
 
 #endif

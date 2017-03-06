@@ -123,43 +123,40 @@ class Log : public MaNGOS::Singleton<Log, MaNGOS::ClassLevelLockable<Log, ACE_Th
 
     ~Log()
     {
-        if( logfile != nullptr )
+        if( logfile != NULL )
             fclose(logfile);
-        logfile = nullptr;
+        logfile = NULL;
 
-        if( gmLogfile != nullptr )
+        if( gmLogfile != NULL )
             fclose(gmLogfile);
-        gmLogfile = nullptr;
+        gmLogfile = NULL;
 
-        if( dberLogfile != nullptr )
+        if( dberLogfile != NULL )
             fclose(dberLogfile);
-        dberLogfile = nullptr;
+        dberLogfile = NULL;
 
-        if (worldLogfile != nullptr)
+        if (worldLogfile != NULL)
             fclose(worldLogfile);
-        worldLogfile = nullptr;
+        worldLogfile = NULL;
 
-        if (nostalriusLogFile != nullptr)
+        if (nostalriusLogFile != NULL)
             fclose(nostalriusLogFile);
-        nostalriusLogFile = nullptr;
+        nostalriusLogFile = NULL;
 
         if (honorLogfile != nullptr)
             fclose(honorLogfile);
         honorLogfile = nullptr;
 
         for (int i = 0; i < LOG_MAX_FILES; ++i)
-            if (logFiles[i] != nullptr)
+            if (logFiles[i] != NULL)
             {
                 fclose(logFiles[i]);
-                logFiles[i] = nullptr;
+                logFiles[i] = NULL;
             }
     }
     public:
         void Initialize();
         void InitColors(const std::string& init_str);
-
-        void InitSmartlogEntries(const std::string& str);
-        void InitSmartlogGuids(const std::string& str);
 
         void out(LogFile t, const char* format, ...) ATTR_PRINTF(3,4);
         void outCommand( uint32 account, const char * str, ...) ATTR_PRINTF(3,4);
@@ -198,10 +195,6 @@ class Log : public MaNGOS::Singleton<Log, MaNGOS::ClassLevelLockable<Log, ACE_Th
         bool IsIncludeTime() const { return m_includeTime; }
 
         static void WaitBeforeContinueIfNeed();
-
-        std::list<uint32> m_smartlogExtraEntries;
-        std::list<uint32> m_smartlogExtraGuids;
-
     private:
         FILE* openLogFile(char const* configFileName,char const* configTimeStampFlag, char const* mode);
         FILE* openGmlogPerAccount(uint32 account);

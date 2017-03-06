@@ -22,13 +22,15 @@ EndScriptData */
 #define SPELL_TF_HASTE              2313
 #define SPELL_TF_MOD_HEAL           26525
 #define SPELL_TF_IMMUNITY           26526
-#define SPELL_TF_CANCEL             26589         
+//#define SPELL_TF_CANCEL             26589
 
 #define SPELL_BLINK_1               4801
 #define SPELL_BLINK_2               8195
 #define SPELL_BLINK_3               20449
 
 #define SPELL_SUMMON_IMAGES         747
+
+#define IMAGE_MAX_HEALTH_MOD        0.2             // Set to 0.25 for evil
 
 struct boss_skeramAI : public ScriptedAI
 {
@@ -83,6 +85,7 @@ struct boss_skeramAI : public ScriptedAI
 
     void JustDied(Unit* Killer)
     {
+
         if (IsImage)
         {
             if (Unit* victim = m_creature->GetCharm())
@@ -99,7 +102,8 @@ struct boss_skeramAI : public ScriptedAI
         DoScriptText(SAY_DEATH, m_creature);
 
         if (m_pInstance)
-            m_pInstance->SetData(TYPE_SKERAM, DONE); 
+            m_pInstance->SetData(TYPE_SKERAM, DONE);
+     
     }
 
     void Aggro(Unit *who)
@@ -123,11 +127,14 @@ struct boss_skeramAI : public ScriptedAI
 
     void JustReachedHome()
     {
+        if (IsImage)
+        {
+            m_creature->ForcedDespawn();
+            return;
+        }
+
         if (m_pInstance)
             m_pInstance->SetData(TYPE_SKERAM, FAIL);
-
-        if (IsImage)
-            m_creature->ForcedDespawn();
     }
 
     void UpdateAI(const uint32 diff)
@@ -175,6 +182,7 @@ struct boss_skeramAI : public ScriptedAI
                     FullFillment_Timer = urand(20000, 25000);
                 }
             }
+            
         }
         else FullFillment_Timer -= diff;
 
@@ -188,7 +196,7 @@ struct boss_skeramAI : public ScriptedAI
             Blink_Timer -= diff;
 
         //Summon 2 Images and teleport for every 25% hp lost
-        if (!IsImage && m_creature->GetHealthPercent() < NextSplitPercent)
+        if (!IsImage && m_creature->GetHealthPercent() <= NextSplitPercent)
             if (DoCastSpellIfCan(m_creature, SPELL_SUMMON_IMAGES) == CAST_OK)
             {
                 if (NextSplitPercent < 26.0f)
@@ -198,6 +206,7 @@ struct boss_skeramAI : public ScriptedAI
             }
 
     }
+
 
     void JustSummoned(Creature* skeramImage)
     {
@@ -209,8 +218,8 @@ struct boss_skeramAI : public ScriptedAI
 
         float skeramPercent = m_creature->GetHealthPercent();
 
-        // Set health to look like the True Prophet. Will have 12.5%, 25%, finally 50% of max Skeram HP. 
-        skeramImage->SetMaxHealth(m_creature->GetMaxHealth() * (12.5f / skeramPercent) * (100 / (int)skeramPercent));
+        // Set health to look like the True Prophet. MaxHealth increases with each split
+        skeramImage->SetMaxHealth(m_creature->GetMaxHealth() * IMAGE_MAX_HEALTH_MOD / (skeramPercent / 100));
         skeramImage->SetHealthPercent(skeramPercent);
         skeramImage->SetInCombatWithZone();
         skeramImage->SetVisibility(VISIBILITY_OFF);
@@ -232,7 +241,6 @@ struct boss_skeramAI : public ScriptedAI
 
         // Get Skeram ready for blink
         m_creature->RemoveAllAuras();
-        ClearTargetIcon();
         m_creature->SetVisibility(VISIBILITY_OFF);
 
         CastBlink(ImageA, mask);
@@ -241,6 +249,7 @@ struct boss_skeramAI : public ScriptedAI
 
         ImageA = nullptr;
         ImageB = nullptr;
+
     }
 
     void CastBlink(Creature* caster)

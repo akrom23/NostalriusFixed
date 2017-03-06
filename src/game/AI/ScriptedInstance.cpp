@@ -133,7 +133,7 @@ GameObject* ScriptedInstance::GetSingleGameObjectFromStorage(uint32 uiEntry)
     // Output log, possible reason is not added GO to map, or not yet loaded;
     sLog.outError("Script requested gameobject with entry %u, but no gameobject of this entry was created yet, or it was not stored by script for map %u.", uiEntry, instance->GetId());
 
-    return nullptr;
+    return NULL;
 }
 
 /// Returns a pointer to a loaded Creature that was stored in m_mGoEntryGuidStore. Can return NULL
@@ -147,7 +147,7 @@ Creature* ScriptedInstance::GetSingleCreatureFromStorage(uint32 uiEntry, bool bS
     if (!bSkipDebugLog)
         sLog.outError("Script requested creature with entry %u, but no npc of this entry was created yet, or it was not stored by script for map %u.", uiEntry, instance->GetId());
 
-    return nullptr;
+    return NULL;
 }
 
 void ScriptedInstance_PTR::OnCreatureEnterCombat(Creature* creature)
@@ -157,7 +157,7 @@ void ScriptedInstance_PTR::OnCreatureEnterCombat(Creature* creature)
         std::map<ObjectGuid, time_t>::iterator it = boss_expirations.find(creature->GetObjectGuid());
         if (it == boss_expirations.end())
         {
-            boss_expirations[creature->GetObjectGuid()] = time(nullptr);
+            boss_expirations[creature->GetObjectGuid()] = time(NULL);
             creature->MonsterSay("Remaining time before despawn: 20 minutes.");
         }
     }
@@ -166,7 +166,7 @@ void ScriptedInstance_PTR::OnCreatureEnterCombat(Creature* creature)
 
 void ScriptedInstance_PTR::Update(uint32 diff)
 {
-    time_t expiration = time(nullptr) - 30*60;
+    time_t expiration = time(NULL) - 30*60;
     std::map<ObjectGuid, time_t>::iterator it = boss_expirations.begin();
     for (; it != boss_expirations.end(); ++it)
     {

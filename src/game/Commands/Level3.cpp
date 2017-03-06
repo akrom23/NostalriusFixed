@@ -6464,9 +6464,6 @@ bool ChatHandler::HandleDebugMoveCommand(char* args)
         case 3:
             target->GetMotionMaster()->MoveFleeing(m_session->GetPlayer());
             break;
-        case 4:
-            target->GetMotionMaster()->MoveFeared(m_session->GetPlayer());
-            break;
     }
     SendSysMessage("Debug Move.");
     return true;

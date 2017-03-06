@@ -237,8 +237,9 @@ bool npc_escortAI::IsPlayerOrGroupInRange() const
                 Player* pMember = pRef->getSource();
 
                 if (pMember && m_creature->IsWithinDistInMap(pMember, m_MaxPlayerDistance))
+                {
                     return true;
-
+                }
             }
         }
         else

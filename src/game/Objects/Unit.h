@@ -946,13 +946,6 @@ enum TeleportToOptions
 
 #define MELEE_Z_LIMIT 36                                    // vertical range diff limit for melee attacks (no meleeing units that fly too high overhead)
 
-enum MovementModType
-{
-    MOV_MOD_FLEE_FOR_ASSISTANCE = 0,
-    MOV_MOD_FLEE_IN_FEAR        = 1,
-    MOV_MOD_CONFUSED            = 2
-};
-
 class MANGOS_DLL_SPEC Unit : public WorldObject
 {
     public:
@@ -1708,9 +1701,11 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
 
         void ApplySpellImmune(uint32 spellId, uint32 op, uint32 type, bool apply);
         void ApplySpellDispelImmunity(const SpellEntry * spellProto, DispelType type, bool apply);
-        virtual bool IsImmuneToSpell(SpellEntry const* spellInfo, bool castOnSelf);
-        virtual bool IsImmuneToDamage(SpellSchoolMask meleeSchoolMask);
+        virtual bool IsImmuneToSpell(SpellEntry const* spellInfo);
+                                                            // redefined in Creature
+        bool IsImmunedToDamage(SpellSchoolMask meleeSchoolMask);
         virtual bool IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const;
+                                                            // redefined in Creature
 
         float GetSpellResistChance(Unit* victim, uint32 schoolMask, bool innateResists) const;
         uint32 CalcArmorReducedDamage(Unit* pVictim, const uint32 damage);
@@ -1743,7 +1738,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         bool IsStopped() const { return !(hasUnitState(UNIT_STAT_MOVING)); }
         void StopMoving();
 
-        void SetFleeing(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0, uint32 time = 0);
+
         void SetFeared(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0, uint32 time = 0);/*DEPRECATED METHOD*/
         void SetConfused(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0);/*DEPRECATED METHOD*/
         void SetFeignDeath(bool apply, ObjectGuid casterGuid = ObjectGuid(), uint32 spellID = 0);/*DEPRECATED METHOD*/
@@ -1783,15 +1778,16 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void AddPetAura(PetAura const* petSpell);
         void RemovePetAura(PetAura const* petSpell);
 
+        // Nostalrius
         void UpdateControl();
         uint32 m_castingSpell;
-        void ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, MovementModType modType, uint32 time=0);
-        // "Un sort plus puissant est actif"
+        void ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, bool fear=false, uint32 time=0);
+        // Nostalrius - "Un sort plus puissant est actif"
         bool HasMorePowerfullSpellActive(SpellEntry const* spellInfos);
-
+        // Nostalrius - auras exclusifs
         // Renvoit l'aura le plus important de la meme sorte que 'like', sauf except.
         Aura* GetMostImportantAuraAfter(Aura const* like, Aura const* except = nullptr);
-        // debug.
+        // Nostalrius - debug.
         void Debug(uint32 debugType, const char* str, ...) const ATTR_PRINTF(3, 4);
         void SetDebugger(ObjectGuid playerGuid, uint32 flags)
         {
@@ -1810,7 +1806,7 @@ class MANGOS_DLL_SPEC Unit : public WorldObject
         void GetRandomAttackPoint(const Unit* target, float &x, float &y, float &z) const;
 
         bool CanReachWithMeleeAttack(Unit const* pVictim, float flat_mod = 0.0f) const;
-        bool CanReachWithMeleeSpellAttack(Unit const* pVictim, float flat_mod = 0.0f) const;
+        bool CanReachWithAutoAttack(Unit const* pVictim, float flat_mod = 0.0f) const;
 
         // Caster movement
         float GetMinChaseDistance(Unit* target) const;

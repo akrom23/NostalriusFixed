@@ -120,7 +120,7 @@ struct AreaEntry
     uint32 Team;
     uint32 LiquidTypeId;
 
-    bool IsZone() const { return ZoneId == 0; }
+    inline bool IsZone() const { return ZoneId == 0; }
 
     static int32 GetFlagById(uint32 id)
     {
@@ -136,10 +136,11 @@ struct AreaEntry
         auto itr = sAreaFlagByMapId.find(mapId);
         if (itr == sAreaFlagByMapId.end())
             return 0;
-        return itr->second;
+        else
+            return itr->second;
     }
 
-    static const AreaEntry* GetById(uint32 id)
+    static inline const AreaEntry* GetById(uint32 id)
     {
         return sAreaStorage.LookupEntry<AreaEntry>(id);
     }
@@ -210,11 +211,11 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
             return false;
         }
 
-        void ExistingPlayerLogin(Player*);
-        virtual bool Add(Player*);
-        virtual void Remove(Player*, bool);
-        template<class T> void Add(T*);
-        template<class T> void Remove(T*, bool);
+        void ExistingPlayerLogin(Player *);
+        virtual bool Add(Player *);
+        virtual void Remove(Player *, bool);
+        template<class T> void Add(T *);
+        template<class T> void Remove(T *, bool);
 
         static void DeleteFromWorld(Player* player);        // player object will deleted at call
 
@@ -231,10 +232,10 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         void UpdateSessionsMovementAndSpellsIfNeeded();
         void ProcessSessionPackets(PacketProcessing type);
 
-        void MessageBroadcast(Player*, WorldPacket*, bool to_self);
-        void MessageBroadcast(WorldObject*, WorldPacket*);
-        void MessageDistBroadcast(Player*, WorldPacket*, float dist, bool to_self, bool own_team_only = false);
-        void MessageDistBroadcast(WorldObject*, WorldPacket*, float dist);
+        void MessageBroadcast(Player *, WorldPacket *, bool to_self);
+        void MessageBroadcast(WorldObject *, WorldPacket *);
+        void MessageDistBroadcast(Player *, WorldPacket *, float dist, bool to_self, bool own_team_only = false);
+        void MessageDistBroadcast(WorldObject *, WorldPacket *, float dist);
 
         float GetVisibilityDistance() const { return m_VisibleDistance; }
         float GetGridActivationDistance() const { return m_GridActivationDistance; }
@@ -252,7 +253,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         bool IsRemovalGrid(float x, float y) const
         {
             GridPair p = MaNGOS::ComputeGridPair(x, y);
-            return !getNGrid(p.x_coord, p.y_coord) || getNGrid(p.x_coord, p.y_coord)->GetGridState() == GRID_STATE_REMOVAL;
+            return( !getNGrid(p.x_coord, p.y_coord) || getNGrid(p.x_coord, p.y_coord)->GetGridState() == GRID_STATE_REMOVAL );
         }
 
         bool IsLoaded(float x, float y) const
@@ -347,13 +348,13 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         template <typename T> void EraseObject(ObjectGuid const& guid)
         {
             m_objectsStore_lock.acquire_write();
-            m_objectsStore.erase<T>(guid, (T*)nullptr);
+            m_objectsStore.erase<T>(guid, (T*)NULL);
             m_objectsStore_lock.release();
         }
         template <typename T> T* GetObject(ObjectGuid const& guid)
         {
             m_objectsStore_lock.acquire_read();
-            T* ptr = m_objectsStore.find<T>(guid, (T*)nullptr);
+            T* ptr = m_objectsStore.find<T>(guid, (T*)NULL);
             m_objectsStore_lock.release();
             return ptr;
         }
@@ -417,14 +418,13 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         void MonsterYellToMap(CreatureInfo const* cinfo, int32 textId, uint32 language, Unit* target, uint32 senderLowGuid = 0);
         void PlayDirectSoundToMap(uint32 soundId);
 
-        // GameObjectCollision
+        // NOSTALRIUS: GameObjectCollision
         float GetHeight(float x, float y, float z, bool vmap = true, float maxSearchDist = DEFAULT_HEIGHT_SEARCH) const;
         bool isInLineOfSight(float x1, float y1, float z1, float x2, float y2, float z2, bool checkDynLos = true) const;
         // First collision with object
         bool GetLosHitPosition(float srcX, float srcY, float srcZ, float& destX, float& destY, float& destZ, float modifyDist) const;
         // Use navemesh to walk
-        bool GetWalkHitPosition(Transport* t, float srcX, float srcY, float srcZ, float& destX, float& destY, float& destZ, 
-            uint32 moveAllowedFlags = 0xF /*NAV_GROUND | NAV_WATER | NAV_MAGMA | NAV_SLIME*/, float zSearchDist = 20.0f, bool locatedOnSteepSlope = true) const;
+        bool GetWalkHitPosition(Transport* t, float srcX, float srcY, float srcZ, float& destX, float& destY, float& destZ, uint32 moveAllowedFlags = 0xF /*NAV_GROUND | NAV_WATER | NAV_MAGMA | NAV_SLIME*/, float zSearchDist = 20.0f, bool locatedOnSteepSlope = true) const;
         bool GetWalkRandomPosition(Transport* t, float &x, float &y, float &z, float maxRadius, uint32 moveAllowedFlags = 0xF) const;
         VMAP::ModelInstance* FindCollisionModel(float x1, float y1, float z1, float x2, float y2, float z2);
 
@@ -499,7 +499,7 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
         bool loaded(const GridPair &) const;
         void EnsureGridCreated(const GridPair &);
         bool EnsureGridLoaded(Cell const&);
-        void EnsureGridLoadedAtEnter(Cell const&, Player* player = nullptr);
+        void EnsureGridLoadedAtEnter(Cell const&, Player* player = NULL);
 
         void buildNGridLinkage(NGridType* pNGridType) { pNGridType->link(this); }
 
@@ -617,8 +617,8 @@ class MANGOS_DLL_SPEC Map : public GridRefManager<NGridType>, public MaNGOS::Obj
 
 class MANGOS_DLL_SPEC WorldMap : public Map
 {
-    using Map::GetPersistentState;                      // hide in subclass for overwrite
-
+    private:
+        using Map::GetPersistentState;                      // hide in subclass for overwrite
     public:
         WorldMap(uint32 id, time_t expiry, uint32 instance = 0) : Map(id, expiry, instance) {}
         ~WorldMap() {}
@@ -629,18 +629,18 @@ class MANGOS_DLL_SPEC WorldMap : public Map
 
 class MANGOS_DLL_SPEC DungeonMap : public Map
 {
-    using Map::GetPersistentState;                      // hide in subclass for overwrite
-
+    private:
+        using Map::GetPersistentState;                      // hide in subclass for overwrite
     public:
         DungeonMap(uint32 id, time_t, uint32 InstanceId);
         ~DungeonMap();
-        bool Add(Player*) override;
-        void Remove(Player*, bool) override;
-        void Update(uint32) override;
+        bool Add(Player *);
+        void Remove(Player *, bool);
+        void Update(uint32);
         bool Reset(InstanceResetMethod method);
         void PermBindAllPlayers(Player *player);
-        void UnloadAll(bool pForce) override;
-        bool CanEnter(Player* player) override;
+        void UnloadAll(bool pForce);
+        bool CanEnter(Player* player);
         void SendResetWarnings(uint32 timeLeft) const;
         void SetResetSchedule(bool on);
         uint32 GetMaxPlayers() const;
@@ -648,7 +648,7 @@ class MANGOS_DLL_SPEC DungeonMap : public Map
         // can't be NULL for loaded map
         DungeonPersistentState* GetPersistanceState() const;
 
-        void InitVisibilityDistance() override;
+        virtual void InitVisibilityDistance();
         // Activated at raid expiration. No one can enter.
         bool IsUnloadingBeforeReset() const { return m_resetAfterUnload; }
     private:
@@ -658,21 +658,21 @@ class MANGOS_DLL_SPEC DungeonMap : public Map
 
 class MANGOS_DLL_SPEC BattleGroundMap : public Map
 {
-    using Map::GetPersistentState;                      // hide in subclass for overwrite
-
+    private:
+        using Map::GetPersistentState;                      // hide in subclass for overwrite
     public:
         BattleGroundMap(uint32 id, time_t, uint32 InstanceId);
         ~BattleGroundMap();
 
-        void Update(uint32) override;
-        bool Add(Player*) override;
-        void Remove(Player*, bool) override;
-        bool CanEnter(Player* player) override;
+        void Update(uint32);
+        bool Add(Player *);
+        void Remove(Player *, bool);
+        bool CanEnter(Player* player);
         void SetUnload();
-        void UnloadAll(bool pForce) override;
+        void UnloadAll(bool pForce);
 
-        void InitVisibilityDistance() override;
-        BattleGround* GetBG() const { return m_bg; }
+        virtual void InitVisibilityDistance();
+        BattleGround* GetBG() { return m_bg; }
         void SetBG(BattleGround* bg) { m_bg = bg; }
 
         // can't be NULL for loaded map
@@ -683,7 +683,8 @@ class MANGOS_DLL_SPEC BattleGroundMap : public Map
 };
 
 template<class T, class CONTAINER>
-void Map::Visit(const Cell& cell, TypeContainerVisitor<T, CONTAINER> &visitor)
+inline void
+Map::Visit(const Cell& cell, TypeContainerVisitor<T, CONTAINER> &visitor)
 {
     const uint32 x = cell.GridX();
     const uint32 y = cell.GridY();

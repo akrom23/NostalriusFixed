@@ -168,7 +168,7 @@ inline void MaNGOS::DynamicObjectUpdater::VisitHelper(Unit* target)
             i_check->SetContestedPvP(attackedPlayer);
     }
     // Check target immune to spell or aura
-    if (target->IsImmuneToSpell(spellInfo, false) || target->IsImmuneToSpellEffect(spellInfo, eff_index, false))
+    if (target->IsImmuneToSpell(spellInfo) || target->IsImmuneToSpellEffect(spellInfo, eff_index, false))
         return;
 
     // Apply PersistentAreaAura on target

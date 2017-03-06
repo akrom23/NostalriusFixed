@@ -104,7 +104,7 @@ class MANGOS_DLL_SPEC SpellAuraHolder
         bool IsPermanent() const { return m_permanent; }
         void SetPermanent(bool permanent) { m_permanent = permanent; }
         bool IsPassive() const { return m_isPassive; }
-        void SetPassive(bool on) { m_isPassive = on; }
+        void SetPassive(bool on) { m_isPassive = on; } // Nostalrius
         bool IsDeathPersistent() const { return m_isDeathPersist; }
         bool IsPersistent() const;
         bool IsPositive() const;

@@ -45,7 +45,7 @@ void ZoneScriptMgr::InitZoneScripts()
 
 void ZoneScriptMgr::InitMapZoneScripts(uint32 mapId, Map* pMap)
 {
-    ZoneScript* pScript = nullptr;
+    ZoneScript* pScript = NULL;
     uint32 counter = 0;
     for (ZoneScript_ScriptSet::iterator it = m_ZoneScripts_Scripts.begin(); it != m_ZoneScripts_Scripts.end(); ++it)
     {
@@ -111,7 +111,7 @@ ZoneScript * ZoneScriptMgr::GetZoneScriptToZoneId(uint32 zoneid)
     {
         // no handle for this zone, return
         //DETAIL_LOG("Pas de script pour la zone %u", zoneid);
-        return nullptr;
+        return NULL;
     }
     return itr->second;
 }
@@ -143,7 +143,7 @@ ZoneScript * ZoneScriptMgr::GetZoneScript(uint32 zoneId)
     if (itr != m_ZoneScriptsMap.end())
         return itr->second;
     else
-        return nullptr;
+        return NULL;
 }
 
 bool ZoneScriptMgr::HandleOpenGo(Player *plr, uint64 guid)
