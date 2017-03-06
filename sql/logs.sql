@@ -84,7 +84,7 @@ CREATE TABLE `logs_spamdetect` (
   `message` varchar(255) NOT NULL DEFAULT '',
   `reason` varchar(255) NOT NULL DEFAULT '',
   KEY `guid` (`guid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
 /*Table structure for table `logs_trade` */
 

@@ -24,6 +24,7 @@ SET @refTable = -1;
 SELECT * FROM creature_loot_template WHERE entry = 10438;
 SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 10438 and mincountOrRef < 0 and groupid = 1;
 
+DELETE FROM reference_loot_template WHERE entry=@refTable AND item = 18735;
 INSERT INTO reference_loot_template VALUES(@refTable,18735,0,1,1,1,0);
 
 -- Onslaught Gridle Add To Loot Table
@@ -33,6 +34,7 @@ SET @refTable = -1;
 SELECT * FROM creature_loot_template WHERE entry = 11502;
 SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 11502 and mincountOrRef < 0 and groupid = 10;
 
+DELETE FROM reference_loot_template WHERE entry=@refTable AND item = 19137;
 INSERT INTO reference_loot_template VALUES(@refTable,19137,0,10,1,1,0);
 
 -- Crystal Adorned Crown Add To Loot Table
@@ -42,6 +44,7 @@ SET @refTable = -1;
 SELECT * FROM creature_loot_template WHERE entry = 6109;
 SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 6109 and mincountOrRef < 0 and groupid = 10;
 
+DELETE FROM reference_loot_template WHERE entry=@refTable AND item = 19132;
 INSERT INTO reference_loot_template VALUES(@refTable,19132,0,10,1,1,0);
 
 -- Animated Chain Necklace Add To Loot Table
@@ -51,10 +54,10 @@ SET @refTable = -1;
 SELECT * FROM creature_loot_template WHERE entry = 10439;
 SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 10439 and mincountOrRef < 0 and groupid = 2;
 
+DELETE FROM reference_loot_template WHERE entry=@refTable AND item = 18723;
 INSERT INTO reference_loot_template VALUES(@refTable,18723,0,2,1,1,0);
 
 
---Frostwolf Cloth Belt Add To Vendor Table
 
 DELETE FROM `npc_vendor` WHERE `entry` = 13219 AND `item` = 19090;
 INSERT INTO npc_vendor VALUES (13219,19090,0,0);

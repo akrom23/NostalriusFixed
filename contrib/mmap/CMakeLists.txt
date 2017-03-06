@@ -12,6 +12,32 @@ cmake_minimum_required (VERSION 2.6)
 
 project( MoveMapGen )
 
+set(CMAKE_MODULE_PATH
+  ${CMAKE_MODULE_PATH}
+  ${CMAKE_SOURCE_DIR}/cmake
+)
+
+# Find needed packages and if necessery abort if something important is missing
+unset(ACE_INCLUDE_DIR CACHE)
+unset(ACE_LIBRARIES CACHE)
+unset(ACE_LIBRARIES_DIR CACHE)
+unset(ACE_INCLUDE_DIR)
+unset(ACE_LIBRARIES)
+unset(ACE_LIBRARIES_DIR)
+
+# CMake policies (can not be handled elsewhere)
+cmake_policy(SET CMP0026 OLD)
+if(POLICY CMP0043)
+  cmake_policy(SET CMP0043 OLD) # Disable 'Ignore COMPILE_DEFINITIONS_<Config> properties'
+endif()
+
+find_package(ACE)
+if(NOT ACE_FOUND)
+  message(FATAL_ERROR
+    "This project requires ACE installed. Please download the ACE Micro Release Kit from http://download.dre.vanderbilt.edu/ and install it. If this script didn't find ACE and it was correctly installed please set ACE_ROOT to the correct path."
+  )
+endif()
+
 ADD_DEFINITIONS(-DMMAP_GENERATOR -DNO_CORE_FUNCS -DDEBUG)
 
 # zlib
@@ -19,11 +45,15 @@ ADD_DEFINITIONS( -DNO_vsnprintf )
 
 ADD_DEFINITIONS("-ggdb")
 ADD_DEFINITIONS("-O3")
+ADD_DEFINITIONS("-std=c++14")
+ADD_DEFINITIONS("-Wno-narrowing")
 
 include_directories(
     ../../src
     ../../src/shared
     ../../src/game
+    ../../src/game/Maps
+    ../../src/game/Commands
     ../../src/game/vmap
     ../../dep/include/g3dlite
     ../../src/framework
@@ -34,21 +64,21 @@ include_directories(
     ../../dep/src/zlib
 )
 
-add_library(zlib
-    ../../dep/src/zlib/adler32.c
-    ../../dep/src/zlib/compress.c
-    ../../dep/src/zlib/crc32.c
-    ../../dep/src/zlib/deflate.c
-    ../../dep/src/zlib/example.c
-    ../../dep/src/zlib/gzio.c
-    ../../dep/src/zlib/infback.c
-    ../../dep/src/zlib/inffast.c
-    ../../dep/src/zlib/inflate.c
-    ../../dep/src/zlib/inftrees.c
-    ../../dep/src/zlib/trees.c
-    ../../dep/src/zlib/uncompr.c
-    ../../dep/src/zlib/zutil.c
-)
+#add_library(zlib
+#    ../../dep/src/zlib/adler32.c
+#    ../../dep/src/zlib/compress.c
+#    ../../dep/src/zlib/crc32.c
+#    ../../dep/src/zlib/deflate.c
+#    ../../dep/src/zlib/example.c
+#    ../../dep/src/zlib/gzio.c
+#    ../../dep/src/zlib/infback.c
+#    ../../dep/src/zlib/inffast.c
+#    ../../dep/src/zlib/inflate.c
+#    ../../dep/src/zlib/inftrees.c
+#    ../../dep/src/zlib/trees.c
+#    ../../dep/src/zlib/uncompr.c
+#    ../../dep/src/zlib/zutil.c
+#)
 
 add_library(g3dlite
     ../../dep/src/g3dlite/AABox.cpp
@@ -141,7 +171,8 @@ add_library(vmap
 	../../src/game/vmap/ModelInstance.cpp
 )
 
-target_link_libraries(vmap g3dlite zlib)
+
+target_link_libraries(vmap g3dlite z)
 
 add_library(Detour
     ../../dep/recastnavigation/Detour/Source/DetourAlloc.cpp
@@ -174,4 +205,4 @@ set(SOURCES
 
 add_executable( MoveMapGen ${SOURCES} )
 
-target_link_libraries( MoveMapGen g3dlite vmap Detour Recast zlib )
+target_link_libraries( MoveMapGen g3dlite vmap Detour Recast z pthread ${ACE_LIBRARIES} )

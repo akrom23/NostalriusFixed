@@ -33,4 +33,4 @@ REPLACE INTO `game_event_quest` VALUES
 (8224, 40),
 (8225, 40),
 (8194, 40);
-REPLACE INTO `variables` VALUES (30023, 1);
+REPLACE INTO `variables` VALUES (30023, 1, '');

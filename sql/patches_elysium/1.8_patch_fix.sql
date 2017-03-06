@@ -2,7 +2,6 @@
 -- To be applied on QA first for testing.
 
 -- Fix Blackwing Lair minlevel
-UPDATE `instance_template` SET `levelMin`='60' WHERE `map`='469';
 
 -- Disable Spells of Patch 1.9 Consumables
 
@@ -21,7 +20,7 @@ REPLACE INTO `spell_disabled` VALUES
 (25691),
 (26276);
 
-UPDATE `item_template` SET `spellid_1` = '9344' WHERE `entry` = '20705' -- Should be applied to the all 1.7 
+UPDATE `item_template` SET `spellid_1` = '9344' WHERE `entry` = '20705';
 
 -- Disable AQ Opening Quest Chain & Enable Holiday Quests
 

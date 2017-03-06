@@ -311,7 +311,7 @@ void VMapManager2::releaseModelInstance(const std::string& filename)
         return;
     }
     int decreasedValue = model->second.decRefCount();
-    if (sWorld.getConfig(CONFIG_BOOL_COLLISION_MODELS_UNLOAD) && decreasedValue <= 0)
+    /*if (sWorld.getConfig(CONFIG_BOOL_COLLISION_MODELS_UNLOAD) && decreasedValue <= 0)
     {
         m_modelsLock.release();
         m_modelsLock.acquire_write();
@@ -328,7 +328,7 @@ void VMapManager2::releaseModelInstance(const std::string& filename)
             delete model->second.getModel();
             iLoadedModelFiles.erase(model);
         }
-    }
+    }*/
     m_modelsLock.release();
 }
 //=========================================================
