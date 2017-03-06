@@ -260,6 +260,7 @@ void AddSC_moonglade();
 void AddSC_mulgore();
 void AddSC_orgrimmar();
 void AddSC_silithus();
+void AddSC_quest_pawn_on_eternal_bond();
 void AddSC_stonetalon_mountains();
 void AddSC_tanaris();
 void AddSC_teldrassil();
@@ -271,7 +272,6 @@ void AddSC_winterspring();
 
 void AddScripts()
 {
-    //Nostalrius
     AddSC_generic_spell_ai();
     AddSC_npc_escort();
 
@@ -524,6 +524,7 @@ void AddScripts()
     AddSC_mulgore();
     AddSC_orgrimmar();
     AddSC_silithus();
+    AddSC_quest_pawn_on_eternal_bond();
     AddSC_stonetalon_mountains();
     AddSC_tanaris();
     AddSC_teldrassil();

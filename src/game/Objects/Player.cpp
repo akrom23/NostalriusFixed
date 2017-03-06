@@ -1374,7 +1374,7 @@ void Player::Update(uint32 update_diff, uint32 p_time)
     // Anticheat sanction
     std::stringstream reason;
     CheatAction cheatAction = _cheatData->Update(p_time, reason);
-    GetSession()->ProcessAnticheatAction("SAC", reason.str().c_str(), cheatAction);
+    GetSession()->ProcessAnticheatAction("ServerAnticheat", reason.str().c_str(), cheatAction);
 }
 
 void Player::OnDisconnected()
@@ -1382,7 +1382,7 @@ void Player::OnDisconnected()
     // Anticheat sanction
     std::stringstream reason;
     CheatAction cheatAction = _cheatData->Finalize(reason);
-    GetSession()->ProcessAnticheatAction("SAC", reason.str().c_str(), cheatAction);
+    GetSession()->ProcessAnticheatAction("ServerAnticheat", reason.str().c_str(), cheatAction);
 
     if (IsInWorld() && FindMap() && CanFreeMove())
     {
@@ -15545,6 +15545,7 @@ void Player::_SaveInventory()
                 continue;
             }
         }
+
         if (item->GetOwnerGuid() != GetObjectGuid())
             GetSession()->ProcessAnticheatAction("ItemCheck", "_SaveInventory: attempting to save not owned item", CHEAT_ACTION_LOG);
 
@@ -16477,12 +16478,16 @@ bool Player::ActivateTaxiPathTo(std::vector<uint32> const& nodes, Creature* npc 
 
     // No hack here
     if (!isTaxiCheater() && !nocheck)
+    {
         for (int i = 0; i < nodes.size(); ++i)
+        {
             if (!m_taxi.IsTaximaskNodeKnown(nodes[i]))
             {
-                GetSession()->ProcessAnticheatAction("SAC", "Taxi: Attempt to use unknown node.", CHEAT_ACTION_LOG);
+                GetSession()->ProcessAnticheatAction("ServerAnticheat", "Taxi: Attempt to use unknown node.", CHEAT_ACTION_LOG);
                 return false;
             }
+        }
+    }
 
     // taximaster case
     if (npc)
@@ -17412,10 +17417,11 @@ void Player::SendInitialPacketsAfterAddToMap(bool login)
     // manual send package (have code in ApplyModifier(true,true); that don't must be re-applied.
     if (HasAuraType(SPELL_AURA_MOD_ROOT))
     {
-        WorldPacket data2(SMSG_FORCE_MOVE_ROOT, 10);
+        WorldPacket data2(SMSG_FORCE_MOVE_ROOT, 8 + 4);
         data2 << GetPackGUID();
-        data2 << (uint32)2;
-        SendObjectMessageToSet(&data2, true);
+        data2 << uint32(0);
+        SendDirectMessage(&data2);
+
         GetCheatData()->OrderSent(&data2);
     }
 
@@ -18952,15 +18958,16 @@ bool Player::FallGround(uint8 FallMode)
     if ((z_diff = fabs(ground_Z - z)) < 0.1f)
         return false;
 
-
     // Below formula for falling damage is from Player::HandleFall
     if (FallMode == 2 && z_diff >= 14.57f)
     {
         uint32 damage = std::min(GetMaxHealth(), (uint32)((0.018f * z_diff - 0.2426f) * GetMaxHealth()));
-        if (damage > 0) EnvironmentalDamage(DAMAGE_FALL, damage);
+        if (damage > 0)
+            EnvironmentalDamage(DAMAGE_FALL, damage);
     }
     else if (FallMode == 0)
         Unit::SetDeathState(CORPSE_FALLING);
+
     return true;
 }
 
@@ -19771,7 +19778,8 @@ void Player::InterruptSpellsWithCastItem(Item* item)
 std::string Player::GetShortDescription() const
 {
     std::stringstream oss;
-    oss << GetName() << ":" << GetGUIDLow() << " [" << GetSession()->GetUsername().c_str() << ":" << GetSession()->GetAccountId() << "@" << GetSession()->GetRemoteAddress().c_str() << "]";
+    std::string sec = GetSession()->GetSecurity() > SEC_PLAYER ? "GM " : "Player ";
+    oss << sec.c_str() << GetName() << ":" << GetGUIDLow() << " [" << GetSession()->GetUsername().c_str() << ":" << GetSession()->GetAccountId() << "@" << GetSession()->GetRemoteAddress().c_str() << "]";
     return oss.str();
 }
 

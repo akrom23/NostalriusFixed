@@ -1620,6 +1620,66 @@ void DoScriptText(int32 iTextEntry, WorldObject* pSource, Unit* pTarget)
     }
 }
 
+/**
+* Function that either simulates or does script text for a map
+*
+* @param iTextEntry Entry of the text, stored in SD0-database, only type CHAT_TYPE_ZONE_YELL supported
+* @param uiCreatureEntry Id of the creature of whom saying will be simulated
+* @param pMap Given Map on which the map-wide text is displayed
+* @param pCreatureSource Can be NULL. If pointer to Creature is given, then the creature does the map-wide text
+* @param pTarget Can be NULL. Possible target for the text
+*/
+void DoOrSimulateScriptTextForMap(int32 iTextEntry, uint32 uiCreatureEntry, Map* pMap, Creature* pCreatureSource /*=NULL*/, Unit* pTarget /*=NULL*/)
+{
+    if (!pMap)
+    {
+        sLog.outError("DoOrSimulateScriptTextForMap entry %i, invalid Map pointer.", iTextEntry);
+        return;
+    }
+
+    if (iTextEntry >= 0)
+    {
+        sLog.outError("DoOrSimulateScriptTextForMap with source entry %u for map %u attempts to process text entry %i, but text entry must be negative.", uiCreatureEntry, pMap->GetId(), iTextEntry);
+        return;
+    }
+
+    CreatureInfo const* pInfo = GetCreatureTemplateStore(uiCreatureEntry);
+    if (!pInfo)
+    {
+        sLog.outError("DoOrSimulateScriptTextForMap has invalid source entry %u for map %u.", uiCreatureEntry, pMap->GetId());
+        return;
+    }
+
+    const StringTextData* pData = sScriptMgr.GetTextData(iTextEntry);
+    if (!pData)
+    {
+        sLog.outError("DoOrSimulateScriptTextForMap with source entry %u for map %u could not find text entry %i.", uiCreatureEntry, pMap->GetId(), iTextEntry);
+        return;
+    }
+
+    DEBUG_LOG("DoOrSimulateScriptTextForMap: text entry=%i, Sound=%u, Type=%u, Language=%u, Emote=%u",
+        iTextEntry, pData->SoundId, pData->Type, pData->Language, pData->Emote);
+
+    if (pData->Type != CHAT_TYPE_ZONE_YELL)
+    {
+        sLog.outError("DoSimulateScriptTextForMap entry %i has not supported chat type %u.", iTextEntry, pData->Type);
+        return;
+    }
+
+    if (pData->SoundId)
+    {
+        if (GetSoundEntriesStore()->LookupEntry(pData->SoundId))
+            pMap->PlayDirectSoundToMap(pData->SoundId);
+        else
+            sLog.outError("DoOrSimulateScriptTextForMap entry %i tried to process invalid sound id %u.", iTextEntry, pData->SoundId);
+    }
+
+    if (pCreatureSource)                                // If provided pointer for sayer, use direct version
+        pMap->MonsterYellToMap(pCreatureSource->GetObjectGuid(), iTextEntry, pData->Language, pTarget);
+    else                                                // Simulate yell
+        pMap->MonsterYellToMap(pInfo, iTextEntry, pData->Language, pTarget);
+}
+
 void Script::RegisterSelf(bool bReportError)
 {
     if (uint32 id = sScriptMgr.GetScriptId(Name.c_str()))

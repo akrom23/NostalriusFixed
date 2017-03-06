@@ -47,7 +47,7 @@ void FearMovementGenerator<T>::_setTargetLocation(T &owner)
     if (_customSpeed > 0)
         init.SetVelocity(_customSpeed);
     int32 traveltime = init.Launch();
-    i_nextCheckTime.Reset(traveltime + urand(NEXT_CHECK_TIME_LOWER_BOUND, NEXT_CHECK_TIME_UPPER_BOUND));
+    i_nextCheckTime.Reset(traveltime + urand(1000, 1500));
     _forceUpdate = false;
 }
 

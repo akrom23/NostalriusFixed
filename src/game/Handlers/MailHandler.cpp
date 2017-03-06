@@ -364,6 +364,7 @@ void WorldSession::HandleSendMailCallback(WorldSession::AsyncMailSendRequest* re
         req->COD = 0;
         ProcessAnticheatAction("MailCheck", "Attempt to send COD mail without any item", CHEAT_ACTION_LOG);
     }
+
     // will delete item or place to receiver mail list
     draft
     .SetMoney(req->money)

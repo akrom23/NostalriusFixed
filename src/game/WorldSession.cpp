@@ -573,19 +573,19 @@ void WorldSession::ProcessPackets(PacketFilter& updater)
             {
                 DETAIL_LOG("Disconnecting session [account id %u / address %s] for badly formatted packet.",
                            GetAccountId(), GetRemoteAddress().c_str());
-                ProcessAnticheatAction("Anticrash", "ByteBufferException", CHEAT_ACTION_KICK);
+                ProcessAnticheatAction("AntiCrash", "ByteBufferException", CHEAT_ACTION_KICK);
             }
         }
         catch (std::runtime_error &e)
         {
             sLog.nostalrius("CATCH Exception 'ASSERT' for account %u / IP %s", GetAccountId(), GetRemoteAddress().c_str());
             sLog.nostalrius(e.what());
-            ProcessAnticheatAction("Anticrash", "ASSERT failed", CHEAT_ACTION_KICK);
+            ProcessAnticheatAction("AntiCrash", "ASSERT failed", CHEAT_ACTION_KICK);
         }
         catch (...)
         {
             sLog.nostalrius("CATCH Unknown exception. Account %u / IP %s", GetAccountId(), GetRemoteAddress().c_str());
-            ProcessAnticheatAction("Anticrash", "Exception raised", CHEAT_ACTION_KICK);
+            ProcessAnticheatAction("AntiCrash", "Exception raised", CHEAT_ACTION_KICK);
         }
 
         delete packet;
@@ -1104,6 +1104,43 @@ void WorldSession::InitWarden(BigNumber* K)
 void WorldSession::ProcessAnticheatAction(const char* detector, const char* reason, uint32 cheatAction, uint32 banSeconds)
 {
     const char* action = "";
+
+    // Log
+    if (cheatAction & CHEAT_ACTION_LOG)
+    {
+        std::string playerDesc;
+        if (_player)
+            playerDesc = _player->GetShortDescription();
+        else
+        {
+            std::stringstream oss;
+            oss << "<None> [" << GetUsername() << ":" << GetAccountId() << "@" << GetRemoteAddress().c_str() << "]";
+            playerDesc = oss.str();
+        }
+
+        sLog.outWarden("%s %s : %s %s", playerDesc.c_str(), detector, reason, action);
+    }
+
+    // Notify GMs
+    if (cheatAction & CHEAT_ACTION_REPORT_GMS)
+    {
+        action = "Announced to GMs.";
+
+        std::stringstream oss;
+        ObjectGuid pguid;
+        if (Player* p = GetPlayer())
+            pguid = p->GetObjectGuid();
+        else
+            oss << "[Account " << GetUsername() << "]";
+        oss << reason;
+        if (cheatAction >= CHEAT_ACTION_KICK)
+            oss << " " << action;
+
+        if (GetSecurity() == SEC_PLAYER)
+            ChannelMgr::AnnounceBothFactionsChannel(detector, pguid, oss.str().c_str());
+    }
+
+    // Mute
     if (cheatAction & CHEAT_ACTION_MUTE_PUB_CHANS)
     {
         action = "Muted from pub chans.";
@@ -1113,6 +1150,8 @@ void WorldSession::ProcessAnticheatAction(const char* detector, const char* reas
             SetAccountFlags(GetAccountFlags() | ACCOUNT_FLAG_MUTED_FROM_PUBLIC_CHANNELS);
         }
     }
+
+    // Kick / Ban
     if (cheatAction & CHEAT_ACTION_BAN_IP_ACCOUNT)
     {
         action = "Account+IP banned.";
@@ -1140,36 +1179,6 @@ void WorldSession::ProcessAnticheatAction(const char* detector, const char* reas
         if (GetSecurity() == SEC_PLAYER)
             KickPlayer();
     }
-    else if (cheatAction & CHEAT_ACTION_REPORT_GMS)
-        action = "Announced to GMs.";
-    else if (!(cheatAction & CHEAT_ACTION_LOG))
-        return;
-
-    if (cheatAction & CHEAT_ACTION_REPORT_GMS)
-    {
-        std::stringstream oss;
-        ObjectGuid pguid;
-        if (Player* p = GetPlayer())
-            pguid = p->GetObjectGuid();
-        else
-            oss << "[Account " << GetUsername() << "]";
-        oss << reason;
-        if (cheatAction >= CHEAT_ACTION_KICK)
-            oss << " " << action;
-
-        if (GetSecurity() == SEC_PLAYER)
-            ChannelMgr::AnnounceBothFactionsChannel(detector, pguid, oss.str().c_str());
-    }
-    std::string playerDesc;
-    if (_player)
-        playerDesc = _player->GetShortDescription();
-    else
-    {
-        std::stringstream oss;
-        oss << "<None> [" << GetUsername() << ":" << GetAccountId() << "@" << GetRemoteAddress().c_str() << "]";
-        playerDesc = oss.str();
-    }
-    sLog.out(LOG_ANTICHEAT, "%s %s: %s %s", playerDesc.c_str(), detector, reason, action);
 }
 
 bool WorldSession::AllowPacket(uint16 opcode)

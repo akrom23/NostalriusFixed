@@ -261,6 +261,7 @@ void WorldSession::HandleAuctionSellItem(WorldPacket & recv_data)
         ProcessAnticheatAction("GoldDupe", "Putting too high auction price", CHEAT_ACTION_LOG);
         return;
     }
+
     if (buyout && bid > buyout)
     {
         ProcessAnticheatAction("GoldDupe", "bid > buyout", CHEAT_ACTION_LOG);

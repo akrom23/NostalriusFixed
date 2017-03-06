@@ -16,8 +16,6 @@
 #define POST_INIT_RADIUS            20.0f
 #define REACHABLE_RADIUS            5.0f
 #define INIT_FLEE_ANGLE_MULT        0.95f
-#define NEXT_CHECK_TIME_LOWER_BOUND 200
-#define NEXT_CHECK_TIME_UPPER_BOUND 500
 
 template<class T>
 class MANGOS_DLL_SPEC FearMovementGenerator : public MovementGeneratorMedium< T, FearMovementGenerator<T> >

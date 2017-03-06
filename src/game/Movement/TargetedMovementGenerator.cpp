@@ -162,7 +162,8 @@ void TargetedMovementGeneratorMedium<T, D>::_setTargetLocation(T &owner)
         init.SetWalk(((D*)this)->EnableWalking());
     init.Launch();
     i_recheckDistance.Reset(500);
-    // Fly-hack
+
+    // Unreachable
     if (Player* player = i_target->ToPlayer())
     {
         float allowed_dist = owner.GetCombatReach(false) + i_target->GetCombatReach(false) + 5.0f;

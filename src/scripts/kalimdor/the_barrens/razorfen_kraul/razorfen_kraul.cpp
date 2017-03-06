@@ -228,7 +228,7 @@ struct npc_snufflenose_gopherAI : public FollowerAI
     void DoFindNewTuber()
     {   
         std::list<GameObject*> lTubersInRange;
-        GetGameObjectListWithEntryInGrid(lTubersInRange, m_creature, GO_BLUELEAF_TUBER, 60.0f);
+        GetGameObjectListWithEntryInGrid(lTubersInRange, m_creature, GO_BLUELEAF_TUBER, 40.0f);
 
         if (lTubersInRange.empty())
             return;
@@ -263,13 +263,7 @@ struct npc_snufflenose_gopherAI : public FollowerAI
 
     bool IsValidTuber(GameObject* tuber)
     {
-        Unit* viewPoint = m_creature;
-
-        // Do LOS checks from Player if exists
-        if (Unit* owner = m_creature->GetOwner())
-            viewPoint = owner;
-
-        if (tuber->isSpawned() || !tuber->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) || !tuber->IsWithinLOSInMap(viewPoint))
+        if (tuber->isSpawned() || !tuber->HasFlag(GAMEOBJECT_FLAGS, GO_FLAG_INTERACT_COND) || !tuber->IsWithinLOSInMap(m_creature))
             return false;
 
         // Check if tuber is in list of already found tubers
@@ -277,8 +271,8 @@ struct npc_snufflenose_gopherAI : public FollowerAI
             if (tuber->GetObjectGuid() == (*itr2))
                 return false;
 
-        // Check that tuber is not more than 15 yards above or below current position
-        if (fabs(viewPoint->GetPositionZ() - tuber->GetPositionZ()) > 15)
+        // Check that tuber is not more than 10 yards above or below current position
+        if (fabs(m_creature->GetPositionZ() - tuber->GetPositionZ()) > 10)
             return false;
 
         return true;
@@ -311,24 +305,12 @@ bool EffectDummyCreature_npc_snufflenose_gopher(Unit* pCaster, uint32 uiSpellId,
     {
         if (pCreatureTarget->GetEntry() == NPC_SNUFFLENOSE_GOPHER)
         {
-            // Do nothing if player has not targeted gopher
-            if (pCaster->GetTargetGuid() != pCreatureTarget->GetObjectGuid())
-            {
-                // Send Spell_FAILED_BAD_TARGETS
-                pCreatureTarget->SendPetCastFail(uiSpellId, (SpellCastResult)0x0A);
-                return false;
-            }
-
             DoScriptText(SAY_GOPHER_COMMAND, pCreatureTarget, pCaster);
 
             if (npc_snufflenose_gopherAI* pGopherAI = dynamic_cast<npc_snufflenose_gopherAI*>(pCreatureTarget->AI()))
             {
                 if (pGopherAI->HasFollowState(STATE_FOLLOW_PAUSED))
-                {
                     pGopherAI->SetFollowPaused(false);
-                    pGopherAI->m_bIsMovementActive = false;
-                    pGopherAI->m_targetTuberGuid = 0;
-                }
                 else
                     pGopherAI->DoFindNewTuber();
             }

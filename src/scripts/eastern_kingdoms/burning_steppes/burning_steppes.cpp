@@ -170,14 +170,14 @@ enum
 
     QUEST_ID_PRECARIOUS_PREDICAMENT = 4121
 };
-struct DialogueEntry
+struct DialogueEntryTemp // redo with correct DialogueHelper!
 {
     int32 action;
     int32 who;
     uint64 timer;
 };
 
-static const DialogueEntry aOutroDialogue[] =
+static const DialogueEntryTemp aOutroDialogue[] =
 {
     {SAY_LAST_STAND,    NPC_GRARK_LORKRUB,              5000},
     {SAY_LEXLORT_1,     NPC_SHADOW_OF_LEXLORT,          3000},

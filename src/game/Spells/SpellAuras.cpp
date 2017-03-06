@@ -1931,9 +1931,14 @@ void Aura::HandleAuraHover(bool apply, bool Real)
         data.Initialize(SMSG_MOVE_UNSET_HOVER, 8 + 4);
     data << GetTarget()->GetPackGUID();
     data << uint32(0);
-    GetTarget()->SendMovementMessageToSet(std::move(data), true);
+
     if (Player* t = GetTarget()->ToPlayer())
+    {
+        t->GetSession()->SendPacket(&data);
         t->GetCheatData()->OrderSent(&data);
+    }
+    else
+        GetTarget()->SendMovementMessageToSet(std::move(data), true);
 }
 
 void Aura::HandleWaterBreathing(bool /*apply*/, bool /*Real*/)

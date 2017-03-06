@@ -117,7 +117,7 @@ void WorldSession::HandleBattlemasterJoinOpcode(WorldPacket & recv_data)
     }
     if (bgTypeId == BATTLEGROUND_AV && joinAsGroup)
     {
-        ProcessAnticheatAction("SAC", "Attempt to queue AV as group.", CHEAT_ACTION_LOG);
+        ProcessAnticheatAction("ServerAnticheat", "Attempt to queue AV as group.", CHEAT_ACTION_LOG);
         return;
     }
 

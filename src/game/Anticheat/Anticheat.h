@@ -76,7 +76,6 @@ class PlayerAnticheatInterface
         virtual bool IsInKnockBack() const { return false; }
         virtual void KnockBack(float speedxy, float speedz, float cos, float sin) {}
 
-
         virtual void AddCheats(uint32 cheats, uint32 count = 1) {}
         virtual void Unreachable(Unit* attacker) {}
         virtual void HandleCommand(ChatHandler* handler) {}
@@ -84,14 +83,13 @@ class PlayerAnticheatInterface
         virtual void OnTransport(Player* plMover, ObjectGuid transportGuid) {}
 
         virtual bool HandleAnticheatTests(MovementInfo& movementInfo, WorldSession* session, WorldPacket* packet) { return true; }
+        virtual bool HandleCustomAnticheatTests(uint32 opcode, MovementInfo& movementInfo) { return true; }
         virtual bool HandleSpeedChangeAck(MovementInfo& movementInfo, WorldSession* session, WorldPacket* packet, float newSpeed) { return true; }
         virtual void InitSpeeds(Unit* unit) {}
 
         virtual void OrderSent(WorldPacket const* data) {}
 
         virtual bool InterpolateMovement(MovementInfo const& mi, uint32 diffMs, float &x, float &y, float &z, float &o) { return true; }
-
-        virtual bool CheckTeleport(uint32 opcode, MovementInfo& movementInfo) { return true; }
 };
 
 class AntispamInterface

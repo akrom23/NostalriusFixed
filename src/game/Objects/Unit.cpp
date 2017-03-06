@@ -10972,6 +10972,7 @@ void Unit::SetMovement(UnitMovementType pType)
             m_movementInfo.moveFlags = (m_movementInfo.moveFlags & ~(MOVEFLAG_MASK_MOVING_OR_TURN | MOVEFLAG_ROOT));
             break;
     }
+
     WorldPacket data;
     if (!movespline->Finalized())
     {
@@ -10991,8 +10992,10 @@ void Unit::SetMovement(UnitMovementType pType)
                 mvtData.SetSplineOpcode(SMSG_SPLINE_MOVE_LAND_WALK, GetObjectGuid());
                 break;
         }
+
         return;
     }
+
     // Inform controller
     Player* mePlayer = ToPlayer();
     Player* controller = nullptr;
@@ -11000,6 +11003,7 @@ void Unit::SetMovement(UnitMovementType pType)
         if (Player* charmerPlayer = charmer->ToPlayer())
             if (charmerPlayer->GetCharmGuid() == GetObjectGuid())
                 controller = charmerPlayer;
+
     if (!mePlayer && !controller)
         return;
 
@@ -11022,13 +11026,16 @@ void Unit::SetMovement(UnitMovementType pType)
             sLog.outError("Player::SetMovement: Unsupported move type (%d), data not sent to client.", pType);
             return;
     }
+
     data << GetPackGUID();
-    data << uint32(WorldTimer::getMSTime()); // Peut etre msTime : WorldTimer::getMSTime() ?
+    data << uint32(0); // Peut etre msTime : WorldTimer::getMSTime() ?
+
     if (mePlayer)
     {
         mePlayer->GetCheatData()->OrderSent(&data);
         mePlayer->GetSession()->SendPacket(&data);
     }
+
     if (controller)
         controller->GetSession()->SendPacket(&data);
 }

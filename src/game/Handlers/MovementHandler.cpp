@@ -276,7 +276,7 @@ void WorldSession::HandleMovementOpcodes(WorldPacket & recv_data)
         return;
 
     // this must be called after HandleAnticheatTests because that function will update order counters (for things like slow fall, water walk, etc.)
-    if (plMover && !plMover->GetCheatData()->CheckTeleport(opcode, movementInfo))
+    if (plMover && !plMover->GetCheatData()->HandleCustomAnticheatTests(opcode, movementInfo))
         return;
 
     // Interrupt spell cast at move
@@ -448,75 +448,6 @@ void WorldSession::HandleMountSpecialAnimOpcode(WorldPacket& /*recvdata*/)
     data << GetPlayer()->GetObjectGuid();
 
     GetPlayer()->SendMovementMessageToSet(std::move(data), false);
-}
-
-void WorldSession::HandleMoveKnockBackAck(WorldPacket & recv_data)
-{
-    DEBUG_LOG("CMSG_MOVE_KNOCK_BACK_ACK");
-
-    Unit *mover = _player->GetMover();
-    Player *plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
-
-    // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
-    if (plMover && plMover->IsBeingTeleported())
-    {
-        recv_data.rpos(recv_data.wpos());                   // prevent warnings spam
-        return;
-    }
-
-    ObjectGuid guid;
-    MovementInfo movementInfo;
-
-    recv_data >> guid;
-    recv_data >> Unused<uint32>();                          // knockback packets counter
-    recv_data >> movementInfo;
-    movementInfo.UpdateTime(recv_data.GetPacketTime());
-
-    if (guid != _clientMoverGuid)
-        return;
-    if (!VerifyMovementInfo(movementInfo, guid))
-        return;
-
-    if (!_player->GetCheatData()->HandleAnticheatTests(movementInfo, this, &recv_data))
-        return;
-
-    HandleMoverRelocation(movementInfo);
-
-    // Actually other clients don't need this packet ...
-    // CMSG_MOVE_KNOCK_BACK_ACK only use is to update position server side for now.
-    /*
-    WorldPacket data(MSG_MOVE_KNOCK_BACK, recv_data.size() + 12);
-    data << guid.WriteAsPacked();
-    data << movementInfo;
-    data << movementInfo.GetJumpInfo().sinAngle;
-    data << movementInfo.GetJumpInfo().cosAngle;
-    data << movementInfo.GetJumpInfo().xyspeed;
-    data << movementInfo.GetJumpInfo().velocity;
-    mover->SendMovementMessageToSet(&data, true, _player);*/
-}
-
-void WorldSession::HandleMoveHoverAck(WorldPacket& recv_data)
-{
-    DEBUG_LOG("CMSG_MOVE_HOVER_ACK");
-
-    MovementInfo movementInfo;
-
-    recv_data >> Unused<uint64>();                          // guid
-    recv_data >> Unused<uint32>();                          // unk
-    recv_data >> movementInfo;
-    recv_data >> Unused<uint32>();                          // unk2
-}
-
-void WorldSession::HandleMoveWaterWalkAck(WorldPacket& recv_data)
-{
-    DEBUG_LOG("CMSG_MOVE_WATER_WALK_ACK");
-
-    MovementInfo movementInfo;
-
-    recv_data.read_skip<uint64>();                          // guid
-    recv_data.read_skip<uint32>();                          // unk
-    recv_data >> movementInfo;
-    recv_data >> Unused<uint32>();                          // unk2
 }
 
 void WorldSession::HandleSummonResponseOpcode(WorldPacket& recv_data)
@@ -700,11 +631,17 @@ void WorldSession::HandleFeatherFallAck(WorldPacket &recv_data)
 {
     DEBUG_LOG("WORLD: CMSG_MOVE_FEATHER_FALL_ACK size %u", recv_data.wpos());
 
+    /* extract packet */
     ObjectGuid guid;
+    uint32 sequenceIndex;
     MovementInfo movementInfo;
-    recv_data >> guid; // guid
-    recv_data.read_skip<uint32>(); // counter
+    float apply;
+
+    recv_data >> guid;
+    recv_data >> sequenceIndex;
     recv_data >> movementInfo;
+    recv_data >> apply;
+
     movementInfo.UpdateTime(recv_data.GetPacketTime());
 
     if (guid != _clientMoverGuid)
@@ -741,6 +678,7 @@ void WorldSession::HandleMoveUnRootAck(WorldPacket& recv_data)
     MovementInfo movementInfo;
     recv_data.read_skip<uint32>();                          // unk
     recv_data >> movementInfo;
+
     movementInfo.UpdateTime(recv_data.GetPacketTime());
 
     if (!VerifyMovementInfo(movementInfo))
@@ -775,6 +713,7 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recv_data)
     MovementInfo movementInfo;
     recv_data.read_skip<uint32>();                          // unk
     recv_data >> movementInfo;
+
     movementInfo.UpdateTime(recv_data.GetPacketTime());
 
     if (!VerifyMovementInfo(movementInfo))
@@ -791,6 +730,125 @@ void WorldSession::HandleMoveRootAck(WorldPacket& recv_data)
     data << _player->GetPackGUID();
     movementInfo.Write(data);
     _player->SendMovementMessageToSet(std::move(data), true, _player);
+}
+
+void WorldSession::HandleMoveHoverAck(WorldPacket& recv_data)
+{
+    DEBUG_LOG("CMSG_MOVE_HOVER_ACK");
+
+    /* extract packet */
+    ObjectGuid guid;
+    uint32 sequenceIndex;
+    MovementInfo movementInfo;
+    float apply;
+
+    recv_data >> guid;
+    recv_data >> sequenceIndex;
+    recv_data >> movementInfo;
+    recv_data >> apply;
+
+    movementInfo.UpdateTime(recv_data.GetPacketTime());
+
+    if (guid != _clientMoverGuid)
+        return;
+
+    if (!VerifyMovementInfo(movementInfo))
+        return;
+
+    if (!_player->GetCheatData()->HandleAnticheatTests(movementInfo, this, &recv_data))
+        return;
+
+    // Position change
+    HandleMoverRelocation(movementInfo);
+    _player->UpdateFallInformationIfNeed(movementInfo, recv_data.GetOpcode());
+
+    WorldPacket data(MSG_MOVE_HOVER, recv_data.size());
+    data << guid.WriteAsPacked();
+    movementInfo.Write(data);
+    _player->SendMovementMessageToSet(std::move(data), true, _player);
+}
+
+void WorldSession::HandleMoveWaterWalkAck(WorldPacket& recv_data)
+{
+    DEBUG_LOG("CMSG_MOVE_WATER_WALK_ACK");
+
+    /* extract packet */
+    ObjectGuid guid;
+    uint32 sequenceIndex;
+    MovementInfo movementInfo;
+    float apply;
+
+    recv_data >> guid;
+    recv_data >> sequenceIndex;
+    recv_data >> movementInfo;
+    recv_data >> apply;
+
+    movementInfo.UpdateTime(recv_data.GetPacketTime());
+
+    if (guid != _clientMoverGuid)
+        return;
+
+    if (!VerifyMovementInfo(movementInfo))
+        return;
+
+    if (!_player->GetCheatData()->HandleAnticheatTests(movementInfo, this, &recv_data))
+        return;
+
+    // Position change
+    HandleMoverRelocation(movementInfo);
+    _player->UpdateFallInformationIfNeed(movementInfo, recv_data.GetOpcode());
+
+    WorldPacket data(MSG_MOVE_WATER_WALK, recv_data.size());
+    data << guid.WriteAsPacked();
+    movementInfo.Write(data);
+    _player->SendMovementMessageToSet(std::move(data), true, _player);
+}
+
+void WorldSession::HandleMoveKnockBackAck(WorldPacket & recv_data)
+{
+    DEBUG_LOG("CMSG_MOVE_KNOCK_BACK_ACK");
+
+    Unit *mover = _player->GetMover();
+    Player *plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL;
+
+    // ignore, waiting processing in WorldSession::HandleMoveWorldportAckOpcode and WorldSession::HandleMoveTeleportAck
+    if (plMover && plMover->IsBeingTeleported())
+    {
+        recv_data.rpos(recv_data.wpos());                   // prevent warnings spam
+        return;
+    }
+
+    ObjectGuid guid;
+    MovementInfo movementInfo;
+
+    recv_data >> guid;
+    recv_data >> Unused<uint32>();                          // knockback packets counter
+    recv_data >> movementInfo;
+
+    movementInfo.UpdateTime(recv_data.GetPacketTime());
+
+    if (guid != _clientMoverGuid)
+        return;
+
+    if (!VerifyMovementInfo(movementInfo, guid))
+        return;
+
+    if (!_player->GetCheatData()->HandleAnticheatTests(movementInfo, this, &recv_data))
+        return;
+
+    HandleMoverRelocation(movementInfo);
+
+    // Actually other clients don't need this packet ...
+    // CMSG_MOVE_KNOCK_BACK_ACK only use is to update position server side for now.
+    /*
+    WorldPacket data(MSG_MOVE_KNOCK_BACK, recv_data.size() + 12);
+    data << guid.WriteAsPacked();
+    data << movementInfo;
+    data << movementInfo.GetJumpInfo().sinAngle;
+    data << movementInfo.GetJumpInfo().cosAngle;
+    data << movementInfo.GetJumpInfo().xyspeed;
+    data << movementInfo.GetJumpInfo().velocity;
+    mover->SendMovementMessageToSet(&data, true, _player);*/
 }
 
 void WorldSession::HandleMoveSplineDoneOpcode(WorldPacket& recv_data)
