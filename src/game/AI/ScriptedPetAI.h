@@ -27,13 +27,9 @@ public:
 
 	void OwnerKilledUnit(Unit* /*pVictim*/) override {}
 
-    void JustRespawned() override;
-
 	void UpdateAI(const uint32 uiDiff) override;
 
 	virtual void Reset() {}
-
-    virtual void ResetCreature() {}
 
 	virtual void UpdatePetAI(const uint32 uiDiff);      // while in combat
 

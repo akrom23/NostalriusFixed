@@ -105,38 +105,27 @@ void GameEventMgr::StopEvent(uint16 event_id, bool overwrite)
 
 void GameEventMgr::EnableEvent(uint16 event_id, bool enable)
 {
-    // skip if event not exists or length <= 0
     if (!IsValidEvent(event_id))
     {
         sLog.outError("GameEventMgr::EnableEvent game event id (%u) not exist in `game_event`.", event_id);
         return;
     }
-
-    uint8 disabled = enable ? 0 : 1;
-
-    // skip if event is already in desired state
-    if (mGameEvent[event_id].disabled == disabled)
-        return;
-
-    // change state
-    mGameEvent[event_id].disabled = disabled;
-    WorldDatabase.PExecute("UPDATE `game_event` SET `disabled` = '%u' WHERE `entry` = '%u'", disabled, event_id);
    
-    // we take no action if event needs to be started: GameEvent system will start it for us on its next iteration
-    if (!IsActiveEvent(event_id))
-        return;
-
-    // disabled event should be stopped also, thus we do it here both for regular and hardcoded events
     auto it = std::find_if(mGameEventHardcodedList.begin(), mGameEventHardcodedList.end(), [&](const WorldEvent* w) { return event_id == w->m_eventId; });
 
-    if (mGameEventHardcodedList.end() != it)
+    if (mGameEventHardcodedList.end() == it)
     {
-        if (!enable)
-            (*it)->Disable();
+        sLog.outError("GameEventMgr::EnableEvent game event id (%u) not found in hardcoded events list.", event_id);
     }
     else
     {
-        StopEvent(event_id, true);
+        mGameEvent[event_id].disabled = enable ? 0 : 1;
+        WorldDatabase.PExecute("UPDATE `game_event` SET `disabled` = '%u' WHERE `entry` = '%u'", enable ? 0 : 1, event_id);
+
+        if (enable)
+            (*it)->Enable();
+        else
+            (*it)->Disable();
     }
 }
 

@@ -1,6 +1,25 @@
-/*
+/* Copyright (C) 2006 - 2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+
+/* ScriptData
+SDName: Boss_Herod
+SD%Complete: 95
+SDComment: Should in addition spawn Myrmidons in the hallway outside
+SDCategory: Scarlet Monastery
+EndScriptData */
 
 #include "scriptPCH.h"
 
@@ -17,170 +36,73 @@
 #define SPELL_WHIRLWIND             8989
 #define SPELL_FRENZY                8269
 
-enum
+#define ENTRY_SCARLET_TRAINEE       6575
+#define ENTRY_SCARLET_MYRMIDON      4295
+
+struct boss_herodAI : public ScriptedAI
 {
-    NPC_SCARLET_MYRMIDON            = 4295,
-    NPC_SCARLET_TRAINEE             = 6575,
-
-    GO_HEROD_DOOR                   = 101854
-};
-
-struct Coords
-{
-    float x, y, z, o;
-};
-
-const Coords MyrmidonSpawn = { 1927.22f, -431.56f, 18.0f, 0.05f };
-
-struct boss_herodAI : ScriptedAI
-{
-    explicit boss_herodAI(Creature* pCreature) : ScriptedAI(pCreature)
+    boss_herodAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        boss_herodAI::Reset();
+        Reset();
     }
 
     bool Enrage;
+    bool CanDoCharge;
     bool TraineeSay;
-    bool m_bWhirlwind;
     uint8 NbTrainee;
     uint32 RushingCharge_Timer;
     uint32 Cleave_Timer;
     uint32 Whirlwind_Timer;
-    uint32 m_uiRootTimer;
-    std::list<ObjectGuid> m_lMyrmidonGuids;
 
-    void Reset() override
+    void Reset()
     {
         Enrage = false;
+        CanDoCharge = true;
         TraineeSay = false;
-        m_bWhirlwind = false;
         NbTrainee = 0;
         RushingCharge_Timer = 1500;
         Cleave_Timer = 12000;
         Whirlwind_Timer = urand(10000, 20000);
-        m_uiRootTimer = 0;
     }
 
-    void Aggro(Unit* /*pWho*/) override
+    void Aggro(Unit *who)
     {
         DoScriptText(SAY_AGGRO, m_creature);
-        DoCastSpellIfCan(m_creature, SPELL_RUSHINGCHARGE);
-        SpawnMyrmidons();
     }
 
-    void KilledUnit(Unit* /*pVictim*/) override
+    void KilledUnit(Unit *victim)
     {
         DoScriptText(SAY_KILL, m_creature);
     }
 
-    void JustSummoned(Creature* pSummoned) override
+    void JustSummoned(Creature* pSummoned)
     {
-        if (pSummoned->GetEntry() == NPC_SCARLET_TRAINEE)
+        // make first Scarlet Trainee say text
+        if (pSummoned->GetEntry() == ENTRY_SCARLET_TRAINEE && !TraineeSay)
         {
-            if (!TraineeSay)
-            {
-                DoScriptText(SAY_TRAINEE_SPAWN, pSummoned);
-                TraineeSay = true;
-            }
-
-            if (NbTrainee < 10)
-                pSummoned->GetMotionMaster()->MovePoint(0, 1940.257080f, -434.454315f, 17.094456f);
-            else
-                pSummoned->GetMotionMaster()->MovePoint(100, 1940.508301f, -428.826080f, 17.095098f);
-
-            NbTrainee++; 
-            return;
+            DoScriptText(SAY_TRAINEE_SPAWN, pSummoned);
+            TraineeSay = true;
         }
 
-        pSummoned->SetNoXP();
-        m_lMyrmidonGuids.push_back(pSummoned->GetObjectGuid());
+        // séparation des mobs en deux groupes de 10 pour occuper les deux escaliers
+        if (NbTrainee < 10)
+            pSummoned->GetMotionMaster()->MovePoint(0, 1940.257080f, -434.454315f, 17.094456f);
+        else
+            pSummoned->GetMotionMaster()->MovePoint(100, 1940.508301f, -428.826080f, 17.095098f);
+
+        NbTrainee++;
     }
 
-    void SummonedCreatureJustDied(Creature* pSummoned) override
-    {
-        if (pSummoned->GetEntry() == NPC_SCARLET_MYRMIDON)
-        {
-            pSummoned->loot.clear();
-        }
-    }
-
-    void SpawnMyrmidons() const
-    {
-        bool engage = false;
-
-        if (auto pDoor = m_creature->FindNearestGameObject(GO_HEROD_DOOR, 100.0f))
-        {
-            if (pDoor->GetGoState() == GO_STATE_ACTIVE)
-                engage = true;
-        }
-
-        for (uint8 i = 0; i < 4; ++i)
-        {
-            if (auto pMyrmidon = m_creature->SummonCreature(NPC_SCARLET_MYRMIDON, 
-                MyrmidonSpawn.x + frand(-3.0, 3.0),
-                MyrmidonSpawn.y + frand(-3.0, 3.0),
-                MyrmidonSpawn.z,
-                MyrmidonSpawn.o, TEMPSUMMON_DEAD_DESPAWN, 20000))
-            {
-                if (engage)
-                    pMyrmidon->SetInCombatWithZone();
-            }
-        }
-    }
-
-    void DespawnMyrmidons()
-    {
-        for (auto itr = m_lMyrmidonGuids.begin(); itr != m_lMyrmidonGuids.end(); ++itr)
-        {
-            if (auto pMyrmidon = m_creature->GetMap()->GetCreature(*itr))
-            {
-                if (pMyrmidon->isAlive() && !pMyrmidon->getVictim())
-                    pMyrmidon->ForcedDespawn();
-            }
-        }
-
-        m_lMyrmidonGuids.clear();
-    }
-
-    void EnterEvadeMode() override
-    {
-        m_creature->clearUnitState(UNIT_STAT_ROOT);
-        DespawnMyrmidons();
-        ScriptedAI::EnterEvadeMode();
-    }
-
-    void JustDied(Unit* /*pKiller*/) override
+    void JustDied(Unit* killer)
     {
         for (uint8 i = 0; i < 20; ++i)
-            m_creature->SummonCreature(NPC_SCARLET_TRAINEE, 1939.18f, -431.58f, 17.09f, 6.22f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600000);
-
-        DespawnMyrmidons();
-
-        if (auto pDoor = m_creature->FindNearestGameObject(GO_HEROD_DOOR, 100.0f))
-        {
-            if (pDoor->GetGoState() != GO_STATE_ACTIVE)
-                pDoor->UseDoorOrButton();
-        }
+            m_creature->SummonCreature(ENTRY_SCARLET_TRAINEE, 1939.18f, -431.58f, 17.09f, 6.22f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 600000);
     }
 
-    void UpdateAI(const uint32 diff) override
+    void UpdateAI(const uint32 diff)
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
-
-        if (m_bWhirlwind)
-        {
-            if (m_uiRootTimer < diff)
-            {
-                m_creature->clearUnitState(UNIT_STAT_ROOT);
-                m_bWhirlwind = false;
-            }
-            else
-            {
-                m_uiRootTimer -= diff;
-                return;
-            }
-        }
 
         //If we are <50% hp goes Enraged
         if (!Enrage && m_creature->GetHealthPercent() <= 50.0f && !m_creature->IsNonMeleeSpellCasted(false))
@@ -193,43 +115,36 @@ struct boss_herodAI : ScriptedAI
             }
         }
 
-        // Rushing Charge
-        if (RushingCharge_Timer < diff)
+        //RushingCharge_Timer
+        if (CanDoCharge)
         {
-            auto pVictim = m_creature->getVictim();
-
-            if (pVictim && !pVictim->IsInRange(m_creature, 0.0f, MELEE_RANGE + 10.0f))
+            if (RushingCharge_Timer < diff)
             {
-                if (DoCastSpellIfCan(m_creature, SPELL_RUSHINGCHARGE) == CAST_OK)
-                    RushingCharge_Timer = 4500;
+                DoCastSpellIfCan(m_creature, SPELL_RUSHINGCHARGE);
+                RushingCharge_Timer = 11000;
+                CanDoCharge = false;
             }
+            else RushingCharge_Timer -= diff;
         }
-        else
-            RushingCharge_Timer -= diff;
 
-        // Cleave
+        //Cleave_Timer
         if (Cleave_Timer < diff)
         {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_CLEAVE) == CAST_OK)
-                Cleave_Timer = 12000;
+            DoCastSpellIfCan(m_creature->getVictim(), SPELL_CLEAVE);
+            Cleave_Timer = 12000;
         }
-        else
-            Cleave_Timer -= diff;
+        else Cleave_Timer -= diff;
 
-        // Whirlwind
         if (Whirlwind_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_WHIRLWIND) == CAST_OK)
             {
-                m_creature->addUnitState(UNIT_STAT_ROOT);
-                m_bWhirlwind = true;
-                m_uiRootTimer = 11000;
                 DoScriptText(SAY_WHIRLWIND, m_creature);
-                Whirlwind_Timer = urand(20000, 30000);
+                Whirlwind_Timer = 30000;
+                CanDoCharge = true;
             }
         }
-        else
-            Whirlwind_Timer -= diff;
+        else Whirlwind_Timer -= diff;
 
         DoMeleeAttackIfReady();
     }
@@ -240,23 +155,23 @@ CreatureAI* GetAI_boss_herod(Creature* pCreature)
     return new boss_herodAI(pCreature);
 }
 
-struct mob_scarlet_traineeAI : ScriptedAI
+struct mob_scarlet_traineeAI : public ScriptedAI
 {
-    explicit mob_scarlet_traineeAI(Creature* pCreature) : ScriptedAI(pCreature)
+    mob_scarlet_traineeAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         Start_Timer = urand(1000, 6000);
         group1 = false;
         group2 = false;
-        mob_scarlet_traineeAI::Reset();
+        Reset();
     }
 
     uint32 Start_Timer;
     bool group1;
     bool group2;
 
-    void Reset() override { }
+    void Reset() { }
 
-    void UpdateAI(const uint32 diff) override
+    void UpdateAI(const uint32 diff)
     {
         if (Start_Timer)
         {
@@ -271,8 +186,7 @@ struct mob_scarlet_traineeAI : ScriptedAI
 
                 Start_Timer = 0;
             }
-            else
-                Start_Timer -= diff;
+            else Start_Timer -= diff;
         }
 
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
@@ -281,7 +195,7 @@ struct mob_scarlet_traineeAI : ScriptedAI
         DoMeleeAttackIfReady();
     }
 
-    void MovementInform(uint32 MovementType, uint32 id) override
+    void MovementInform(uint32 MovementType, uint32 id)
     {
         if (MovementType == POINT_MOTION_TYPE)
         {
@@ -343,36 +257,6 @@ CreatureAI* GetAI_mob_scarlet_trainee(Creature* pCreature)
     return new mob_scarlet_traineeAI(pCreature);
 }
 
-/*
- *
- */
-
-struct go_herod_leverAI : GameObjectAI
-{
-    explicit go_herod_leverAI(GameObject* pGo) : GameObjectAI(pGo)
-    {
-
-    }
-
-    bool OnUse(Unit* /*pCaster*/) override
-    {
-        if (auto pDoor = me->FindNearestGameObject(GO_HEROD_DOOR, 40.0f))
-        {
-             if (pDoor->getLootState() == GO_READY || pDoor->getLootState() == GO_JUST_DEACTIVATED)
-                 pDoor->UseDoorOrButton();
-             else
-                 pDoor->ResetDoorOrButton();
-        }
-
-        return true;
-    }
-};
-
-GameObjectAI* GetAI_go_herod_lever(GameObject* pGo)
-{
-    return new go_herod_leverAI(pGo);
-}
-
 void AddSC_boss_herod()
 {
     Script *newscript;
@@ -384,10 +268,5 @@ void AddSC_boss_herod()
     newscript = new Script;
     newscript->Name = "mob_scarlet_trainee";
     newscript->GetAI = &GetAI_mob_scarlet_trainee;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "go_herod_lever";
-    newscript->GOGetAI = &GetAI_go_herod_lever;
     newscript->RegisterSelf();
 }

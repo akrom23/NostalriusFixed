@@ -90,7 +90,7 @@ CanCastResult CreatureAI::DoCastSpellIfCan(Unit* pTarget, uint32 uiSpell, uint32
         pCaster = pTarget;
 
     // Allowed to cast only if not casting (unless we interrupt ourself) or if spell is triggered
-    if (!pCaster->IsNonMeleeSpellCasted(false) || uiCastFlags & (CAST_TRIGGERED | CAST_INTERRUPT_PREVIOUS))
+    if (!pCaster->IsNonMeleeSpellCasted(false) || (uiCastFlags & (CAST_TRIGGERED | CAST_INTERRUPT_PREVIOUS)))
     {
         if (const SpellEntry* pSpell = sSpellMgr.GetSpellEntry(uiSpell))
         {
@@ -117,36 +117,14 @@ CanCastResult CreatureAI::DoCastSpellIfCan(Unit* pTarget, uint32 uiSpell, uint32
             pCaster->CastSpell(pTarget, pSpell, uiCastFlags & CAST_TRIGGERED, nullptr, nullptr, uiOriginalCasterGUID);
             return CAST_OK;
         }
-
-        sLog.outErrorDb("DoCastSpellIfCan by creature entry %u attempt to cast spell %u but spell does not exist.", m_creature->GetEntry(), uiSpell);
-        return CAST_FAIL_OTHER;
-    }
-
-    return CAST_FAIL_IS_CASTING;
-}
-
-void CreatureAI::ClearTargetIcon()
-// Clears any group/raid icons this creature may have
-{
-    Map::PlayerList const& players = m_creature->GetMap()->GetPlayers();
-
-    if (players.isEmpty())
-        return;
-
-    std::set<Group*> instanceGroups;
-
-    // Clear target icon for every unique group in instance
-    for (Map::PlayerList::const_iterator itr = players.begin(); itr != players.end(); ++itr)
-    {
-        if (Group* pGroup = itr->getSource()->GetGroup())
+        else
         {
-            if (instanceGroups.find(pGroup) == instanceGroups.end())
-            {
-                instanceGroups.insert(pGroup);
-                pGroup->ClearTargetIcon(m_creature->GetObjectGuid());
-            }
+            sLog.outErrorDb("DoCastSpellIfCan by creature entry %u attempt to cast spell %u but spell does not exist.", m_creature->GetEntry(), uiSpell);
+            return CAST_FAIL_OTHER;
         }
     }
+    else
+        return CAST_FAIL_IS_CASTING;
 }
 
 void CreatureAI::SetGazeOn(Unit *target)
@@ -167,7 +145,8 @@ bool CreatureAI::UpdateVictimWithGaze()
     {
         if (m_creature->getVictim())
             return true;
-        m_creature->SetReactState(REACT_AGGRESSIVE);
+        else
+            m_creature->SetReactState(REACT_AGGRESSIVE);
     }
 
     if (m_creature->SelectHostileTarget())
@@ -223,7 +202,7 @@ bool CreatureAI::UpdateVictim()
 
 void CreatureAI::DoCast(Unit* victim, uint32 spellId, bool triggered)
 {
-    if (!victim || m_creature->IsNonMeleeSpellCasted(false) && !triggered)
+    if (!victim || (m_creature->IsNonMeleeSpellCasted(false) && !triggered))
         return;
 
     m_creature->CastSpell(victim, spellId, triggered);

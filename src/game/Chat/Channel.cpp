@@ -24,7 +24,7 @@
 #include "MasterPlayer.h"
 
 Channel::Channel(const std::string& name)
-    : m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(0), m_securityLevel(0), m_area_dependant(true)
+    : m_announce(true), m_moderate(false), m_name(name), m_flags(0), m_channelId(0), m_securityLevel(0), m_area_dependant(false)
 {
     // Make the "World" channel public.
     std::string normName = name;
@@ -57,12 +57,15 @@ Channel::Channel(const std::string& name)
     else                                                    // it's custom channel
     {
         if (m_name == "World")
-        {
             m_flags |= CHANNEL_FLAG_GENERAL;
-            m_announce = false;
-        }
         else
             m_flags |= CHANNEL_FLAG_CUSTOM;
+    }
+
+    if (m_name == "World")
+    {
+        m_announce = false;
+        m_flags = 0;
     }
 }
 
@@ -128,7 +131,7 @@ void Channel::Join(ObjectGuid p, const char *pass)
     JoinNotify(p);
 
     // if no owner first logged will become
-    if (HasFlag(CHANNEL_FLAG_CUSTOM) && !IsConstant() && !m_ownerGuid)
+    if (m_flags & CHANNEL_FLAG_CUSTOM && !IsConstant() && !m_ownerGuid)
     {
         SetOwner(p, (m_players.size() > 1 ? true : false));
         m_players[p].SetModerator(true);
@@ -371,12 +374,7 @@ void Channel::SetMode(ObjectGuid p, const char *p2n, bool mod, bool set)
         }
 
         if (mod)
-        {
-            if (HasFlag(CHANNEL_FLAG_GENERAL) && newp->GetSession()->GetSecurity() < SEC_GAMEMASTER)
-                return;
-
             SetModerator(newp->GetObjectGuid(), set);
-        }
         else
             SetMute(newp->GetObjectGuid(), set);
     }
@@ -407,7 +405,7 @@ void Channel::SetOwner(ObjectGuid p, const char *newname)
     }
 
     Player *newp = sObjectMgr.GetPlayer(newname);
-    if (!newp || !IsOn(newp->GetObjectGuid()))
+    if (newp == NULL || !IsOn(newp->GetObjectGuid()))
     {
         WorldPacket data;
         MakePlayerNotFound(&data, newname);
@@ -422,9 +420,6 @@ void Channel::SetOwner(ObjectGuid p, const char *newname)
         SendToOne(&data, p);
         return;
     }
-
-    if (HasFlag(CHANNEL_FLAG_GENERAL) && newp->GetSession()->GetSecurity() < SEC_GAMEMASTER)
-        return;
 
     m_players[newp->GetObjectGuid()].SetModerator(true);
     SetOwner(newp->GetObjectGuid());
@@ -678,13 +673,6 @@ void Channel::Invite(ObjectGuid p, const char *newname)
 
 void Channel::SetOwner(ObjectGuid guid, bool exclaim)
 {
-    PlayerPointer newp = GetPlayer(guid);
-    if (!newp)
-        return;
-
-    if (HasFlag(CHANNEL_FLAG_GENERAL) && newp->GetSession()->GetSecurity() < SEC_GAMEMASTER)
-        return;
-
     if (m_ownerGuid)
     {
         // [] will re-add player after it possible removed

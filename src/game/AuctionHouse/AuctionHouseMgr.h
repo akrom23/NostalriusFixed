@@ -124,8 +124,8 @@ class AuctionHouseObject
 
         void Update();
 
-        void BuildListBidderItems(WorldPacket& data, Player* player, uint32 listfrom, uint32& count, uint32& totalcount);
-        void BuildListOwnerItems(WorldPacket& data, Player* player, uint32 listfrom, uint32& count, uint32& totalcount);
+        void BuildListBidderItems(WorldPacket& data, Player* player, uint32 from, uint32& count, uint32& totalcount);
+        void BuildListOwnerItems(WorldPacket& data, Player* player, uint32 from, uint32& count, uint32& totalcount);
         void BuildListAuctionItems(WorldPacket& data, Player* player,
                 AuctionHouseClientQuery const& query,
             uint32& count, uint32& totalcount);

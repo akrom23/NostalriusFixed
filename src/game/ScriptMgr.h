@@ -108,8 +108,7 @@ enum eScriptCommand
 enum SummonCreatureFlags
 {
     SUMMON_CREATURE_ACTIVE      = 0x1,
-    SUMMON_CREATURE_UNIQUE      = 0x2,                      // not actually unique, just checks for same entry in certain range
-    SUMMON_CREATURE_UNIQUE_TEMP = 0x4,                      // same as 0x2 but check for TempSummon only creatures
+    SUMMON_CREATURE_UNIQUE      = 0x2,
 };
 
 struct ScriptInfo
@@ -190,8 +189,8 @@ struct ScriptInfo
         {
             uint32 creatureEntry;                           // datalong
             uint32 despawnDelay;                            // datalong2
-            uint32 uniqueLimit;                             // datalong3
-            uint32 uniqueDistance;                          // datalong4
+            uint32 unused1;                                 // datalong3
+            uint32 unused2;                                 // datalong4
             uint32 flags;                                   // data_flags
         } summonCreature;
 

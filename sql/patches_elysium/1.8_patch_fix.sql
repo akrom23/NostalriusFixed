@@ -6,27 +6,25 @@ UPDATE `instance_template` SET `levelMin`='60' WHERE `map`='469';
 
 -- Disable Spells of Patch 1.9 Consumables
 
-REPLACE INTO `spell_disabled` VALUES 
-(25117),
-(25118),
-(25119),
-(25120),
-(25123),
-(25122),
-(25121),
-(25660),
-(25704),
-(25722),
-(25804),
-(25691),
-(26276);
+DELETE FROM `spell_disabled` WHERE `entry` IN (25117, 25118, 25119, 25120, 25123, 25122, 25121, 25660, 25704, 25722, 25804, 25691, 26276);
 
-UPDATE `item_template` SET `spellid_1` = '9344' WHERE `entry` = '20705' -- Should be applied to the all 1.7 
+INSERT INTO `spell_disabled` VALUES (25117);
+INSERT INTO `spell_disabled` VALUES (25118);
+INSERT INTO `spell_disabled` VALUES (25119);
+INSERT INTO `spell_disabled` VALUES (25120);
+INSERT INTO `spell_disabled` VALUES (25123);
+INSERT INTO `spell_disabled` VALUES (25122);
+INSERT INTO `spell_disabled` VALUES (25121);
+INSERT INTO `spell_disabled` VALUES (25660);
+INSERT INTO `spell_disabled` VALUES (25704);
+INSERT INTO `spell_disabled` VALUES (25722);
+INSERT INTO `spell_disabled` VALUES (25804);
+INSERT INTO `spell_disabled` VALUES (25691);
+INSERT INTO `spell_disabled` VALUES (26276);
 
 -- Disable AQ Opening Quest Chain & Enable Holiday Quests
 
 UPDATE quest_template SET MinLevel = 61 WHERE entry IN (8286, 8287, 8288, 8301, 8302, 8303, 8305);
-UPDATE quest_template SET MinLevel = 61 WHERE entry = 5527;
 UPDATE quest_template SET MinLevel = 61 WHERE entry BETWEEN 8461 AND 9665 AND entry NOT IN (8619, 8635, 8636, 8642, 8643, 8644, 8645, 8646, 8647, 8648, 8649, 8650, 8651, 8652, 8653, 8670, 8671, 8672, 8673, 8674, 8675, 8676, 8677, 8679, 8680, 8681, 8682, 8683, 8684, 8685, 8686, 8688, 8713, 8714, 8715, 8716, 8717, 8718, 8719, 8720, 8721, 8722, 8723, 8724, 8725, 8726, 8727, 8746, 8763, 8767, 8768, 8769, 8803, 8827, 8860, 8861, 8866, 8867, 8868, 8870, 8871, 8872, 8873, 8875, 8883, 8897, 8898, 8899, 8900, 8901, 8902, 8903, 8979, 8980, 8981, 8982, 8983, 8984, 9024, 9025, 9026);
 
 -- Item Removal of all items 20726 and higher except for the items in this list: 
@@ -354,59 +352,3 @@ DELETE FROM creature_questrelation WHERE quest NOT IN (SELECT entry FROM quest_t
 DELETE FROM gameobject_involvedrelation WHERE quest NOT IN (SELECT entry FROM quest_template);
 DELETE FROM gameobject_questrelation WHERE quest NOT IN (SELECT entry FROM quest_template);
 
--- Zanza's Potent Potables
-REPLACE INTO `spell_mod` (`Id`, `AttributesEx3`, `Comment`) VALUES 
-(24382, 1048576, 'Spirit of Zanza - persist through death (before 1.12)'),
-(24417, 1048576, 'Sheen of Zanza - persist through death (before 1.12)'),
-(24383, 1048576, 'Swiftness of Zanza - persist through death (before 1.12)');
-DELETE FROM `spell_disabled` WHERE `entry` = 24417;
-
--- spawn of Azuregos, Kazzak 1.3
-UPDATE `creature` SET `spawnFlags` = 0 WHERE id IN (6109, 12397);
-
--- disable unavailable game events
-UPDATE `game_event` SET `disabled` = 1 WHERE `entry` IN
-(
-154,		-- Silithus @ 1.9 (unchecked)
-155,		-- Argent dawn @ 1.11 (unchecked)
-158,		-- 1.10 Patch : Recipes (unchecked)
-160,		-- 1.10 Patch : t0.5 Quest Chain (unchecked)
-166,		-- Patch 1.9
-167,		-- Patch 1.10
-168 		-- Patch 1.11 ? 1.12
-);
-
--- enable available game events
-UPDATE `game_event` SET `disabled` = 0 WHERE `entry` IN
-(
-14, 15, 40,			-- Stranglethorn Fishing Extravaganza 1.7
-4, 5, 100, 101, 	-- DarkMoon Faire 1.6
-13,					-- Elemental Invasion 1.5
-16, 38, 39,			-- Gurubashi Arena 1.5
-18,					-- Call to arms: Alterac Valley 1.5
-156, 159,			-- Dire Maul extra content(unchecked) 1.3
-35, 36, 37,
-42, 43, 44,			-- The Maul 1.3
-66,					-- Dragons of Nightmare 1.8
-161,				-- Patch 1.3
-162,				-- Patch 1.4 | 1.5
-163,				-- Patch 1.6
-164,				-- Patch 1.7
-165					-- Patch 1.8
-);
-
--- enable Alterac Valley 1.5
-UPDATE `battleground_template` SET `MinLvl` = 51, `MaxLvl` = 60 WHERE `id` = 1;
-
--- disable unavailable instances
-UPDATE `areatrigger_teleport` SET `required_level` = 61 WHERE `target_map` IN 
-(
-533,    -- Naxxramas 1.12
-531,    -- AQ40 (Temple of AQ) 1.9
-509	    -- AQ20 (Ruins of AQ) 1.9
-);
-
--- enable available instances
-UPDATE `areatrigger_teleport` SET `required_level` = 45 WHERE `target_map` = 429;    -- Dire Maul 1.3
-UPDATE `areatrigger_teleport` SET `required_level` = 60 WHERE `target_map` = 469;    -- Blackwing Lair 1.6
-UPDATE `areatrigger_teleport` SET `required_level` = 60 WHERE `target_map` = 309;    -- Zul'Gurub 1.7

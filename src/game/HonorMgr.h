@@ -34,19 +34,14 @@ typedef std::list<HonorStanding> HonorStandingList;
 struct WeeklyScore
 {
     WeeklyScore()
-        : level(0), account(0), hk(0), dk(0), standing(0), highestRank(0),
-            cp(0.0f), oldRp(0.0f), newRp(0.0f), earning(0.0f) {}
+        : level(0), hk(0), dk(0), cp(0.0f), rp(0.0f), standing(0) {}
 
     uint8  level;
-    uint32 account;
     uint32 hk;
     uint32 dk;
     float  cp;
-    float  oldRp;
-    float  newRp;
-    float  earning;
+    float  rp;
     uint32 standing;
-    uint8  highestRank;
 };
 
 typedef std::unordered_map<uint32, WeeklyScore> WeeklyScoresHash;
@@ -65,7 +60,6 @@ class HonorMaintenancer
         void DistributeRankPoints(Team team);
         void InactiveDecayRankPoints();
         void FlushRankPoints();
-        void CreateCalculationReport();
 
         float GetStandingCPByPosition(HonorStandingList& standingList, uint32 position);
         uint32 GetStandingPositionByGUID(uint32 guid, Team team);
@@ -88,6 +82,8 @@ class HonorMaintenancer
         HonorStandingList m_hordeStandingList;
         HonorStandingList m_allianceStandingList;
         HonorStandingList m_inactiveStandingList;
+        uint8 m_step;
+        uint32 m_waittime;
         WeeklyScoresHash m_weeklyScores;
 
         uint32 m_lastMaintenanceDay;
@@ -155,9 +151,9 @@ class HonorMgr
         void ClearHonorData();
         void ClearHonorCP();
 
-        static void InitRankInfo(HonorRankInfo &prk);
-        static void CalculateRankInfo(HonorRankInfo& prk);
-        static HonorRankInfo CalculateRank(float rankPoints, uint32 totalHK = 0);
+        void InitRankInfo(HonorRankInfo &prk);
+        HonorRankInfo CalculateRank(float rankPoints);
+        HonorRankInfo CalculateRankInfo(HonorRankInfo& prk);
         uint32 CalculateTotalKills(Unit* victim) const;
         
         static float DishonorableKillPoints(uint8 level);
@@ -170,7 +166,7 @@ class HonorMgr
         void SetHighestRank(uint8 hignestRank)
         {
             m_highestRank.rank = hignestRank;
-            CalculateRankInfo(m_highestRank);
+            m_highestRank = CalculateRankInfo(m_highestRank);
         }
         uint32 GetStanding() const { return m_standing; }
         void SetStanding(uint32 standing) { m_standing = standing; }

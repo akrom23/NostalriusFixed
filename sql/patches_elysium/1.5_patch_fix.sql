@@ -1,69 +1,24 @@
 -- Disable Spells of Patch 1.9 Consumables
 
-REPLACE INTO `spell_disabled` VALUES 
-(25117),
-(25118),
-(25119),
-(25120),
-(25123),
-(25122),
-(25121),
-(25660),
-(25704),
-(25722),
-(25804),
-(25691),
-(26276);
+DELETE FROM `spell_disabled` WHERE `entry` IN (25117, 25118, 25119, 25120, 25123, 25122, 25121, 25660, 25704, 25722, 25804, 25691, 26276);
 
-DELETE FROM `creature` WHERE `id` = 15306;
-
--- Malekis FootWrap Add To Loot Table
-
-SET @refTable = -1;
-
-SELECT * FROM creature_loot_template WHERE entry = 10438;
-SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 10438 and mincountOrRef < 0 and groupid = 1;
-
-INSERT INTO reference_loot_template VALUES(@refTable,18735,0,1,1,1,0);
-
--- Onslaught Gridle Add To Loot Table
-
-SET @refTable = -1;
-
-SELECT * FROM creature_loot_template WHERE entry = 11502;
-SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 11502 and mincountOrRef < 0 and groupid = 10;
-
-INSERT INTO reference_loot_template VALUES(@refTable,19137,0,10,1,1,0);
-
--- Crystal Adorned Crown Add To Loot Table
-
-SET @refTable = -1;
-
-SELECT * FROM creature_loot_template WHERE entry = 6109;
-SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 6109 and mincountOrRef < 0 and groupid = 10;
-
-INSERT INTO reference_loot_template VALUES(@refTable,19132,0,10,1,1,0);
-
--- Animated Chain Necklace Add To Loot Table
-
-SET @refTable = -1;
-
-SELECT * FROM creature_loot_template WHERE entry = 10439;
-SELECT @refTable := -mincountOrRef FROM creature_loot_template WHERE entry = 10439 and mincountOrRef < 0 and groupid = 2;
-
-INSERT INTO reference_loot_template VALUES(@refTable,18723,0,2,1,1,0);
-
-
---Frostwolf Cloth Belt Add To Vendor Table
-
-DELETE FROM `npc_vendor` WHERE `entry` = 13219 AND `item` = 19090;
-INSERT INTO npc_vendor VALUES (13219,19090,0,0);
-DELETE FROM `npc_vendor` WHERE `entry` = 13218 AND `item` = 19090;
-INSERT INTO npc_vendor VALUES (13218,19090,0,0);
+INSERT INTO `spell_disabled` VALUES (25117);
+INSERT INTO `spell_disabled` VALUES (25118);
+INSERT INTO `spell_disabled` VALUES (25119);
+INSERT INTO `spell_disabled` VALUES (25120);
+INSERT INTO `spell_disabled` VALUES (25123);
+INSERT INTO `spell_disabled` VALUES (25122);
+INSERT INTO `spell_disabled` VALUES (25121);
+INSERT INTO `spell_disabled` VALUES (25660);
+INSERT INTO `spell_disabled` VALUES (25704);
+INSERT INTO `spell_disabled` VALUES (25722);
+INSERT INTO `spell_disabled` VALUES (25804);
+INSERT INTO `spell_disabled` VALUES (25691);
+INSERT INTO `spell_disabled` VALUES (26276);
 
 -- Item Removal of all items 19326 and higher except for the items in this list: https://docs.google.com/spreadsheets/d/1ZZaQ8sE0ztrcC4UeZkSOUEiP5TyMDRIWGcn3t_lCW7Y/edit#gid=0
 
-DELETE FROM item_template WHERE entry >= 19326 AND entry NOT IN (20744, 20745, 20746, 20747, 20748, 20749, 20750, 20752, 20753, 20754, 20755, 20756, 20757, 20758, 20769, 21023, 21071, 21072, 21099, 21114, 21151, 21153, 21177, 21174, 21211, 21213, 21217, 21219, 21235, 21308, 21314, 21315, 21340, 21342, 21358, 21371, 21524, 21525, 21545, 21546, 21547, 21557, 21558, 21559, 21571, 21574, 21576, 21721, 21745, 21747, 21815, 21829, 21833, 22243, 22244, 22246, 22248, 22249, 22250, 22307, 22308, 22309, 22393, 22739, 22895, 22897, 23002, 23007, 23015, 23022, 23160, 23161, 23192, 23246, 23247, 22843, 22852, 22855, 22856, 22857, 22858, 22859, 22860, 22862, 22863, 22864, 22865, 22867, 22868, 22869, 22870, 22872, 22873, 22874, 22875, 22876, 22877, 22878, 22879, 22880, 22881, 22882, 22883, 22884, 22885, 22886, 22887, 23243, 23244, 23251, 23252, 23253, 23254, 23255, 23256, 23257, 23258, 23259, 23260, 23261, 23262, 23263, 23264, 23272, 23273, 23274, 23275, 23276, 23277, 23278, 23279, 23280, 23281, 23282, 23283, 23284, 23285, 23286, 23287, 23288, 23289, 23290, 23291, 23292, 23293, 23294, 23295, 23296, 23297, 23298, 23299, 23300, 23301, 23302, 23303, 23304, 23305, 23306, 23307, 23308, 23309, 23310, 23311, 23312, 23313, 23314, 23315, 23316, 23317, 23318, 23319, 21713, 21640, 21537, 21740, 21738, 21742, 21741, 21743, 21737, 21746, 21100, 21711);
+DELETE FROM item_template WHERE entry >= 19326 AND entry NOT IN (20744, 20745, 20746, 20747, 20748, 20749, 20750, 20752, 20753, 20754, 20755, 20756, 20757, 20758, 20769, 21023, 21071, 21072, 21099, 21114, 21151, 21153, 21177, 21174, 21211, 21213, 21217, 21219, 21235, 21308, 21314, 21315, 21340, 21342, 21358, 21371, 21524, 21525, 21545, 21546, 21547, 21557, 21558, 21559, 21571, 21574, 21576, 21721, 21745, 21747, 21815, 21829, 21833, 22243, 22244, 22246, 22248, 22249, 22250, 22307, 22308, 22309, 22393, 22739, 22895, 22897, 23002, 23007, 23015, 23022, 23160, 23161, 23192, 23246, 23247, 22843, 22852, 22855, 22856, 22857, 22858, 22859, 22860, 22862, 22863, 22864, 22865, 22867, 22868, 22869, 22870, 22872, 22873, 22874, 22875, 22876, 22877, 22878, 22879, 22880, 22881, 22882, 22883, 22884, 22885, 22886, 22887, 23243, 23244, 23251, 23252, 23253, 23254, 23255, 23256, 23257, 23258, 23259, 23260, 23261, 23262, 23263, 23264, 23272, 23273, 23274, 23275, 23276, 23277, 23278, 23279, 23280, 23281, 23282, 23283, 23284, 23285, 23286, 23287, 23288, 23289, 23290, 23291, 23292, 23293, 23294, 23295, 23296, 23297, 23298, 23299, 23300, 23301, 23302, 23303, 23304, 23305, 23306, 23307, 23308, 23309, 23310, 23311, 23312, 23313, 23314, 23315, 23316, 23317, 23318, 23319);
 
 -- Remove items on this list from DB: https://docs.google.com/spreadsheets/d/1YZww0pjVdVCZOaQs4dtx86Hd1CHCRnRhUvEn5iEEYbY/edit#gid=0
 
@@ -71,6 +26,10 @@ DELETE FROM item_template WHERE entry IN (19202, 19203, 19204, 19205, 19206, 192
 
 -- Removing Zandalar Repeatable Quests
 DELETE FROM `creature` WHERE `id` IN (15183, 15070, 15306);
+
+-- TODO the same to < 1.5 Patches
+DELETE FROM `creature_questrelation` WHERE id IN (15078, 15079);
+UPDATE `game_event` SET `start_time` = '0000-00-00 00:00:00',  `end_time` = '0000-00-00 00:00:00' WHERE `entry` = 40;
 
 -- Nexus Crystal #20725 to Large Brilliant Shard #14344 DB_world Replacement
 
@@ -414,63 +373,3 @@ DELETE FROM creature_involvedrelation WHERE quest NOT IN (SELECT entry FROM ques
 DELETE FROM creature_questrelation WHERE quest NOT IN (SELECT entry FROM quest_template);
 DELETE FROM gameobject_involvedrelation WHERE quest NOT IN (SELECT entry FROM quest_template);
 DELETE FROM gameobject_questrelation WHERE quest NOT IN (SELECT entry FROM quest_template);
-
--- Zanza's Potent Potables
-REPLACE INTO `spell_mod` (`Id`, `AttributesEx3`, `Comment`) VALUES 
-(24382, 1048576, 'Spirit of Zanza - persist through death (before 1.12)'),
-(24417, 1048576, 'Sheen of Zanza - persist through death (before 1.12)'),
-(24383, 1048576, 'Swiftness of Zanza - persist through death (before 1.12)');
-DELETE FROM `spell_disabled` WHERE `entry` = 24417;
-
--- spawn of Azuregos, Kazzak 1.3
-UPDATE `creature` SET `spawnFlags` = 0 WHERE id IN (6109, 12397);
-
--- Black Lotus is BoP now
-UPDATE item_template SET bonding = '1' WHERE entry = '13468';
-
--- disable unavailable game events
-UPDATE `game_event` SET `disabled` = 1 WHERE `entry` IN
-(
-4, 5, 100, 101, 	-- DarkMoon Faire 1.6
-14, 15, 40,			-- Stranglethorn Fishing Extravaganza 1.7
-66,					-- Dragons of Nightmare 1.8
-154,		-- Silithus @ 1.9 (unchecked)
-155,		-- Argent dawn @ 1.11 (unchecked)
-158,		-- 1.10 Patch : Recipes (unchecked)
-160,		-- 1.10 Patch : t0.5 Quest Chain (unchecked)
-163,		-- Patch 1.6
-164,		-- Patch 1.7
-165,		-- Patch 1.8
-166,		-- Patch 1.9
-167,		-- Patch 1.10
-168 		-- Patch 1.11 ? 1.12
-);
-
--- enable available game events
-UPDATE `game_event` SET `disabled` = 0 WHERE `entry` IN
-(
-13,					-- Elemental Invasion 1.5
-16, 38, 39,			-- Gurubashi Arena 1.5
-18,					-- Call to arms: Alterac Valley 1.5
-156, 159,			-- Dire Maul extra content(unchecked) 1.3
-35, 36, 37,
-42, 43, 44,			-- The Maul 1.3
-161,				-- Patch 1.3
-162					-- Patch 1.4 | 1.5
-);
-
--- enable Alterac Valley 1.5
-UPDATE `battleground_template` SET `MinLvl` = 51, `MaxLvl` = 60 WHERE `id` = 1;
-
--- disable unavailable instances
-UPDATE `areatrigger_teleport` SET `required_level` = 61 WHERE `target_map` IN 
-(
-533,    -- Naxxramas 1.12
-531,    -- AQ40 (Temple of AQ) 1.9
-509,    -- AQ20 (Ruins of AQ) 1.9
-309,    -- Zul'Gurub 1.7
-469     -- Blackwing Lair 1.6
-);
-
--- enable available instances
-UPDATE `areatrigger_teleport` SET `required_level` = 45 WHERE `target_map` = 429;    -- Dire Maul 1.3

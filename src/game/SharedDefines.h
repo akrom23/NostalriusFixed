@@ -255,7 +255,7 @@ enum SpellAttributes
     SPELL_ATTR_CASTABLE_WHILE_DEAD            = 0x00800000,            // 23 castable while dead?
     SPELL_ATTR_CASTABLE_WHILE_MOUNTED         = 0x01000000,            // 24 castable while mounted
     SPELL_ATTR_DISABLED_WHILE_ACTIVE          = 0x02000000,            // 25 Activate and start cooldown after aura fade or remove summoned creature or go
-    SPELL_ATTR_NEGATIVE                       = 0x04000000,            // 26 Almost all negative spell have it
+    SPELL_ATTR_NEGATIVE_1                     = 0x04000000,            // 26 Many negative spells have this attr
     SPELL_ATTR_CASTABLE_WHILE_SITTING         = 0x08000000,            // 27 castable while sitting
     SPELL_ATTR_CANT_USED_IN_COMBAT            = 0x10000000,            // 28 Cannot be used in combat
     SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY  = 0x20000000,            // 29 unaffected by invulnerability (hmm possible not...)
@@ -272,7 +272,7 @@ enum SpellAttributesEx
     SPELL_ATTR_EX_UNK4                        = 0x00000010,            // 4
     SPELL_ATTR_EX_NOT_BREAK_STEALTH           = 0x00000020,            // 5 Not break stealth
     SPELL_ATTR_EX_CHANNELED_2                 = 0x00000040,            // 6 channeled 2
-    SPELL_ATTR_EX_CANT_BE_REFLECTED           = 0x00000080,            // 7
+    SPELL_ATTR_EX_NEGATIVE                    = 0x00000080,            // 7
     SPELL_ATTR_EX_NOT_IN_COMBAT_TARGET        = 0x00000100,            // 8 Spell req target not to be in combat state
     SPELL_ATTR_EX_MELEE_COMBAT_START          = 0x00000200,            // 9 player starts melee combat after this spell is cast
     SPELL_ATTR_EX_NO_THREAT                   = 0x00000400,            // 10 no generates threat on cast 100%
@@ -301,8 +301,11 @@ enum SpellAttributesEx
 
 enum SpellAttributesEx2
 {
+    SPELL_ATTR_EX2_CANT_REFLECTED             = 0x0,
+
     SPELL_ATTR_EX2_CAN_TARGET_DEAD            = 0x00000001,            // 0 can target dead unit or corpse
     SPELL_ATTR_EX2_UNK1                       = 0x00000002,            // 1
+// Nostalrius.
     SPELL_ATTR_EX2_IGNORE_LOS                 = 0x00000004,            // 2 ? used for detect can or not spell reflected // do not need LOS (e.g. 18220 since 3.3.3)
     SPELL_ATTR_EX2_UNK3                       = 0x00000008,            // 3 auto targeting? (e.g. fishing skill enhancement items since 3.3.3)
     SPELL_ATTR_EX2_DISPLAY_IN_STANCE_BAR      = 0x00000010,            // 4 client displays icon in stance bar when learned, even if not shapeshift
@@ -364,10 +367,10 @@ enum SpellAttributesEx3
     SPELL_ATTR_EX3_REQ_OFFHAND                = 0x01000000,            // 24 Req offhand weapon
     SPELL_ATTR_EX3_UNK25                      = 0x02000000,            // 25 no cause spell pushback ?
     SPELL_ATTR_EX3_UNK26                      = 0x04000000,            // 26
-    SPELL_ATTR_EX3_DRAIN_SOUL                 = 0x08000000,            // 27
+    SPELL_ATTR_EX3_UNK27                      = 0x08000000,            // 27
     SPELL_ATTR_EX3_UNK28                      = 0x10000000,            // 28
     SPELL_ATTR_EX3_UNK29                      = 0x20000000,            // 29
-    SPELL_ATTR_EX3_DONT_DISPLAY_RANGE         = 0x40000000,            // 30
+    SPELL_ATTR_EX3_UNK30                      = 0x40000000,            // 30
     SPELL_ATTR_EX3_UNK31                      = 0x80000000            // 31
 };
 
@@ -380,25 +383,25 @@ enum SpellAttributesEx4
     SPELL_ATTR_EX4_UNK4                       = 0x00000010,            // 4 This will no longer cause guards to attack on use??
     SPELL_ATTR_EX4_UNK5                       = 0x00000020,            // 5
     SPELL_ATTR_EX4_NOT_STEALABLE              = 0x00000040,            // 6 although such auras might be dispellable, they cannot be stolen
-    SPELL_ATTR_EX4_CAN_CAST_WHILE_CASTING     = 0x00000080,            // 7 In theory, can use this spell while another is channeled/cast/autocast
-    SPELL_ATTR_EX4_STACK_DOT_MODIFIER         = 0x00000100,            // 8 no effect on non DoTs?
-    SPELL_ATTR_EX4_TRIGGER_ACTIVATE           = 0x00000200,            // 9 initially disabled / trigger activate from event (Execute, Riposte, Deep Freeze end other)
+    SPELL_ATTR_EX4_UNK7                       = 0x00000080,            // 7
+    SPELL_ATTR_EX4_UNK8                       = 0x00000100,            // 8
+    SPELL_ATTR_EX4_UNK9                       = 0x00000200,            // 9
     SPELL_ATTR_EX4_SPELL_VS_EXTEND_COST       = 0x00000400,            // 10 Rogue Shiv have this flag
     SPELL_ATTR_EX4_UNK11                      = 0x00000800,            // 11
     SPELL_ATTR_EX4_UNK12                      = 0x00001000,            // 12
     SPELL_ATTR_EX4_UNK13                      = 0x00002000,            // 13
-    SPELL_ATTR_EX4_DAMAGE_DOESNT_BREAK_AURAS  = 0x00004000,            // 14
+    SPELL_ATTR_EX4_UNK14                      = 0x00004000,            // 14
     SPELL_ATTR_EX4_UNK15                      = 0x00008000,            // 15
 //    SPELL_ATTR_EX4_NOT_USABLE_IN_ARENA        = 0x00010000,            // 16 not usable in arena
 //    SPELL_ATTR_EX4_USABLE_IN_ARENA            = 0x00020000,            // 17 usable in arena
     SPELL_ATTR_EX4_UNK18                      = 0x00040000,            // 18
     SPELL_ATTR_EX4_UNK19                      = 0x00080000,            // 19
-    SPELL_ATTR_EX4_NOT_CHECK_SELFCAST_POWER   = 0x00100000,            // 20 do not give "more powerful spell" error message
+    SPELL_ATTR_EX4_UNK20                      = 0x00100000,            // 20 do not give "more powerful spell" error message
     SPELL_ATTR_EX4_UNK21                      = 0x00200000,            // 21
     SPELL_ATTR_EX4_UNK22                      = 0x00400000,            // 22
     SPELL_ATTR_EX4_UNK23                      = 0x00800000,            // 23
     SPELL_ATTR_EX4_UNK24                      = 0x01000000,            // 24
-    SPELL_ATTR_EX4_IS_PET_SCALING             = 0x02000000,            // 25 pet scaling auras
+    SPELL_ATTR_EX4_UNK25                      = 0x02000000,            // 25 pet scaling auras
     SPELL_ATTR_EX4_CAST_ONLY_IN_OUTLAND       = 0x04000000,            // 26 Can only be used in Outland.
     SPELL_ATTR_EX4_UNK27                      = 0x08000000,            // 27
     SPELL_ATTR_EX4_UNK28                      = 0x10000000,            // 28

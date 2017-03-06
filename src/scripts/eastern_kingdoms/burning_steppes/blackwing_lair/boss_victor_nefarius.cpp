@@ -88,11 +88,11 @@ static const uint32 aPossibleDrake[MAX_DRAKES] = {NPC_BRONZE_DRAKANOID, NPC_BLUE
 
 // Dev note: Lord Victor Nefarius should despawn completely, then ~5 seconds later Nefarian should appear.
 
-struct boss_victor_nefariusAI : ScriptedAI
+struct boss_victor_nefariusAI : public ScriptedAI
 {
-    explicit boss_victor_nefariusAI(Creature* pCreature) : ScriptedAI(pCreature)
+    boss_victor_nefariusAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = static_cast<ScriptedInstance*>(pCreature->GetInstanceData());
+        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
 
         // Select the 2 different drakes that we are going to use until despawned
         // 5 possiblities for the first drake, 4 for the second, 20 total possiblites
@@ -108,8 +108,7 @@ struct boss_victor_nefariusAI : ScriptedAI
                 ++idx2;
             m_uiDrakeTypeTwo = aPossibleDrake[idx2 % NUM_DRAKES];
         }
-
-        boss_victor_nefariusAI::Reset();
+        Reset();
     }
 
     ScriptedInstance* m_pInstance;
@@ -138,7 +137,7 @@ struct boss_victor_nefariusAI : ScriptedAI
     ObjectGuid m_uiMindControledPlayerGuid;
     float m_uiMindControledPlayerAggro;
 
-    void Reset() override
+    void Reset()
     {
         m_uiKilledAdds            = 0;
         m_uiAddSpawnTimer         = 6000;
@@ -173,20 +172,27 @@ struct boss_victor_nefariusAI : ScriptedAI
             m_creature->SetVisibility(VISIBILITY_ON);
     }
 
-    void Aggro(Unit* /*pWho*/) override
+    void Aggro(Unit* /*pWho*/)
     {
         if (m_pInstance)
             m_pInstance->SetData(TYPE_NEFARIAN, IN_PROGRESS);
-
         m_creature->SetInCombatWithZone();
     }
 
-    void EnterEvadeMode() override
+    void EnterEvadeMode()
     {
+        ACE_Stack_Trace st;
+        sLog.nostalrius("[AI/Nefa] Victor Nefarius reset: %s", st.c_str());
+        sLog.nostalrius("[AI/Nefa] Phases [%u:%u:%u]", phase1, phase2, phase2bis);
+        sLog.nostalrius("[AI/Nefa] Victim: %s", m_creature->getVictim() ? m_creature->getVictim()->GetGuidStr().c_str() : "NULL");
+        sLog.nostalrius("[AI/Nefa] Alive: %u ThreatListSize: %u", m_creature->isAlive(), m_creature->getThreatManager().getThreatList().size());
+        if (Unit* victim = m_creature->getVictim())
+            sLog.nostalrius("[AI/Nefa] Victim pos {%.2f %.2f %.2f} death=%u", victim->GetPositionX(), victim->GetPositionY(), victim->GetPositionZ(), victim->getDeathState());
+        sLog.nostalrius("[AI/Nefa] Nefar. pos {%.2f %.2f %.2f} death=%u", m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), m_creature->getDeathState());
         ScriptedAI::EnterEvadeMode();
     }
 
-    void JustReachedHome() override
+    void JustReachedHome()
     {
         m_creature->setFaction(FACTION_FRIENDLY);
         m_creature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
@@ -194,9 +200,9 @@ struct boss_victor_nefariusAI : ScriptedAI
         if (m_pInstance)
             m_pInstance->SetData(TYPE_NEFARIAN, FAIL);
 
-        std::list<GameObject*> lGameObjects;
+        std::list<GameObject *> lGameObjects;
         m_creature->GetGameObjectListWithEntryInGrid(lGameObjects, GO_DRAKONID_BONES, 250.0f);
-        for (auto itr = lGameObjects.begin(); itr != lGameObjects.end(); ++itr)
+        for (std::list<GameObject *>::iterator itr = lGameObjects.begin(); itr != lGameObjects.end(); ++itr)
             (*itr)->DeleteLater();
 
         // @TODO: Find out why there is this reset bug !!
@@ -205,7 +211,7 @@ struct boss_victor_nefariusAI : ScriptedAI
         m_creature->DisappearAndDie();
     }
 
-    void JustSummoned(Creature* pSummoned) override
+    void JustSummoned(Creature* pSummoned)
     {
         if (Unit* pTarget = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
         {
@@ -216,19 +222,19 @@ struct boss_victor_nefariusAI : ScriptedAI
         pSummoned->SetRespawnDelay(7 * DAY);
     }
 
-    void SummonedCreatureJustDied(Creature* pSummoned) override
+    void SummonedCreatureJustDied(Creature* pSummoned)
     {
         // Despawn self when Nefarian is killed
         if (pSummoned->GetEntry() == NPC_NEFARIAN)
         {
-            m_creature->SetRespawnDelay(7 * DAY);
+            m_creature->SetRespawnDelay(604800); // 7 days 604800
             m_creature->ForcedDespawn();
         }
         else
             ++m_uiKilledAdds;
     }
 
-    void UpdateAI(const uint32 uiDiff) override
+    void UpdateAI(const uint32 uiDiff)
     {
         if (NefaEventStart && !phase1)
         {
@@ -278,16 +284,8 @@ struct boss_victor_nefariusAI : ScriptedAI
         // Add spawning mechanism
         if (m_uiAddSpawnTimer < uiDiff)
         {
-            m_creature->SummonCreature(m_uiDrakeTypeOne, 
-                aNefarianLocs[0].m_fX, 
-                aNefarianLocs[0].m_fY, 
-                aNefarianLocs[0].m_fZ, 
-                5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
-            m_creature->SummonCreature(m_uiDrakeTypeTwo, 
-                aNefarianLocs[1].m_fX, 
-                aNefarianLocs[1].m_fY, 
-                aNefarianLocs[1].m_fZ, 
-                5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
+            m_creature->SummonCreature(m_uiDrakeTypeOne, aNefarianLocs[0].m_fX, aNefarianLocs[0].m_fY, aNefarianLocs[0].m_fZ, 5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
+            m_creature->SummonCreature(m_uiDrakeTypeTwo, aNefarianLocs[1].m_fX, aNefarianLocs[1].m_fY, aNefarianLocs[1].m_fZ, 5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
 
             m_uiAddSpawnTimer = urand(6000, 7000);
         }
@@ -296,16 +294,8 @@ struct boss_victor_nefariusAI : ScriptedAI
 
         if (m_uiAddChromaSpawnTimer < uiDiff)
         {
-            m_creature->SummonCreature(NPC_CHROMATIC_DRAKANOID, 
-                aNefarianLocs[0].m_fX, 
-                aNefarianLocs[0].m_fY, 
-                aNefarianLocs[0].m_fZ, 
-                5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
-            m_creature->SummonCreature(NPC_CHROMATIC_DRAKANOID, 
-                aNefarianLocs[1].m_fX, 
-                aNefarianLocs[1].m_fY, 
-                aNefarianLocs[1].m_fZ, 
-                5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
+            m_creature->SummonCreature(NPC_CHROMATIC_DRAKANOID, aNefarianLocs[0].m_fX, aNefarianLocs[0].m_fY, aNefarianLocs[0].m_fZ, 5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
+            m_creature->SummonCreature(NPC_CHROMATIC_DRAKANOID, aNefarianLocs[1].m_fX, aNefarianLocs[1].m_fY, aNefarianLocs[1].m_fZ, 5.000f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10 * IN_MILLISECONDS);
             m_uiAddChromaSpawnTimer = 35000;
         }
         else
@@ -329,11 +319,7 @@ struct boss_victor_nefariusAI : ScriptedAI
 
             // Spawn Nefarian
             // Summon as active, to be able to work proper!
-            if (Creature* pNefarian = m_creature->SummonCreature(NPC_NEFARIAN, 
-                aNefarianLocs[2].m_fX, 
-                aNefarianLocs[2].m_fY, 
-                aNefarianLocs[2].m_fZ, 
-                0, TEMPSUMMON_MANUAL_DESPAWN, 0, true))
+            if (Creature* pNefarian = m_creature->SummonCreature(NPC_NEFARIAN, aNefarianLocs[2].m_fX, aNefarianLocs[2].m_fY, aNefarianLocs[2].m_fZ, 0, TEMPSUMMON_MANUAL_DESPAWN, 0, true))
             {
                 pNefarian->CastSpell(pNefarian, SPELL_HOVER, true);
                 pNefarian->SetFly(true);
@@ -454,21 +440,20 @@ CreatureAI* GetAI_boss_victor_nefarius(Creature* creature)
 {
     if (creature->GetMapId() == 469) //BWL
         return new boss_victor_nefariusAI(creature);
-
-    // UBRS
-    creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
-    return new NullCreatureAI(creature);
+    else // UBRS
+    {
+        creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
+        return new NullCreatureAI(creature);
+    }
 }
 
 bool GossipHello_boss_victor_nefarius(Player* pPlayer, Creature* pCreature)
 {
-    auto m_pInstance = static_cast<ScriptedInstance*>(pCreature->GetInstanceData());
+    ScriptedInstance* m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
     
     if (m_pInstance && m_pInstance->GetData(TYPE_CHROMAGGUS) == DONE)
-        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "I've made no mistakes." ,GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
+        pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, "I've made no mistakes." , GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
     pPlayer->SEND_GOSSIP_MENU(GOSSIP_TEXT_NEFARIUS_1, pCreature->GetObjectGuid());
-
     return true;
 }
 
@@ -493,7 +478,7 @@ bool GossipSelect_boss_victor_nefarius(Player* pPlayer, Creature* pCreature, uin
             pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
             pCreature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
 
-            if (auto pNefarius = dynamic_cast<boss_victor_nefariusAI*>(pCreature->AI()))
+            if (boss_victor_nefariusAI* pNefarius = dynamic_cast<boss_victor_nefariusAI*>(pCreature->AI()))
                 pNefarius->NefaEventStart = true;
             break;
     }

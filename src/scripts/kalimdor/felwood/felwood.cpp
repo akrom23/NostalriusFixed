@@ -446,11 +446,11 @@ enum
     NPC_ARKO_NARIN                  = 11018
 };
 
-struct npc_captured_arkonarinAI : npc_escortAI
+struct npc_captured_arkonarinAI : public npc_escortAI
 {
-    explicit npc_captured_arkonarinAI(Creature* pCreature) : npc_escortAI(pCreature)
+    npc_captured_arkonarinAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
-        npc_captured_arkonarinAI::Reset();
+        Reset();
     }
 
     ObjectGuid m_treyGuid;
@@ -521,9 +521,9 @@ struct npc_captured_arkonarinAI : npc_escortAI
                 break;
             case 41:
                 DoScriptText(SAY_ESCAPE_DEMONS, m_creature);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5082.068f, -490.084f, 296.856f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5084.135f, -489.187f, 296.832f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5085.676f, -488.518f, 296.824f, 5.15f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5082.068f, -490.084f, 296.856f, 5.15f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5084.135f, -489.187f, 296.832f, 5.15f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_JAEDENAR_LEGIONNAIRE, 5085.676f, -488.518f, 296.824f, 5.15f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
                 break;
             case 43:
                 SetRun(false);
@@ -532,7 +532,7 @@ struct npc_captured_arkonarinAI : npc_escortAI
                 DoScriptText(SAY_FRESH_AIR, m_creature);
                 break;
             case 105:
-                m_creature->SummonCreature(NPC_SPIRT_TREY, 4844.839f, -395.763f, 350.603f, 6.25f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_SPIRT_TREY, 4844.839f, -395.763f, 350.603f, 6.25f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
                 break;
             case 106:
                 DoScriptText(SAY_TREY, m_creature);
@@ -591,7 +591,7 @@ bool QuestAccept_npc_captured_arkonarin(Player* pPlayer, Creature* pCreature, co
 {
     if (pQuest->GetQuestId() == QUEST_ID_RESCUE_JAEDENAR)
     {
-        if (auto pEscortAI = dynamic_cast<npc_captured_arkonarinAI*>(pCreature->AI()))
+        if (npc_captured_arkonarinAI* pEscortAI = dynamic_cast<npc_captured_arkonarinAI*>(pCreature->AI()))
         {
             pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
 

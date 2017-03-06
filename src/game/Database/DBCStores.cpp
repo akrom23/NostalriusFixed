@@ -23,11 +23,13 @@
 #include "ProgressBar.h"
 #include "SharedDefines.h"
 #include "ObjectGuid.h"
-#include "Map.h"
-#include "SQLStorages.h"
+
 #include "DBCfmt.h"
 
 #include <map>
+
+typedef std::map<uint32, uint32> AreaIDByAreaFlag;
+typedef std::map<uint32, uint32> AreaFlagByMapID;
 
 struct WMOAreaTableTripple
 {
@@ -47,6 +49,10 @@ struct WMOAreaTableTripple
 };
 
 typedef std::map<WMOAreaTableTripple, WMOAreaTableEntry const *> WMOAreaInfoByTripple;
+
+DBCStorage <AreaTableEntry> sAreaStore(AreaTableEntryfmt);
+static AreaIDByAreaFlag sAreaIDByAreaFlag;
+static AreaFlagByMapID  sAreaFlagByMapID;                   // for instances without generated *.map files
 
 static WMOAreaInfoByTripple sWMOAreaInfoByTripple;
 
@@ -203,7 +209,7 @@ void LoadDBCStores(const std::string& dataPath)
 {
     std::string dbcPath = dataPath + "dbc/";
 
-    const uint32 DBCFilesCount = 47;
+    const uint32 DBCFilesCount = 48;
 
     BarGoLink bar(DBCFilesCount);
 
@@ -211,6 +217,22 @@ void LoadDBCStores(const std::string& dataPath)
 
     // bitmask for index of fullLocaleNameList
     uint32 availableDbcLocales = 0xFFFFFFFF;
+
+    LoadDBC(availableDbcLocales, bar, bad_dbc_files, sAreaStore,                dbcPath, "AreaTable.dbc");
+
+    // must be after sAreaStore loading
+    for (uint32 i = 1; i <= sAreaStore.GetNumRows(); ++i)          // areaid numbered from 1
+    {
+        if (AreaTableEntry const* area = sAreaStore.LookupEntry(i))
+        {
+            // fill AreaId->DBC records
+            sAreaIDByAreaFlag.insert(AreaIDByAreaFlag::value_type(uint16(area->exploreFlag), area->ID));
+
+            // fill MapId->DBC records ( skip sub zones and continents )
+            if (area->zone == 0 && area->mapid != 0 && area->mapid != 1)
+                sAreaFlagByMapID.insert(AreaFlagByMapID::value_type(area->mapid, area->exploreFlag));
+        }
+    }
 
     LoadDBC(availableDbcLocales, bar, bad_dbc_files, sAreaTriggerStore,         dbcPath, "AreaTrigger.dbc");
     LoadDBC(availableDbcLocales, bar, bad_dbc_files, sAuctionHouseStore,        dbcPath, "AuctionHouse.dbc");
@@ -489,7 +511,8 @@ void LoadDBCStores(const std::string& dataPath)
 
     // Check loaded DBC files proper version
     if (!sSpellStore.LookupEntry(33392)            ||
-            !sSkillLineAbilityStore.LookupEntry(15030))
+            !sSkillLineAbilityStore.LookupEntry(15030) ||
+            !sAreaStore.LookupEntry(3486))
     {
         sLog.outError("\nYou have _outdated_ DBC files. Please re-extract DBC files for one from client build: %s", AcceptableClientBuildsListStr().c_str());
         Log::WaitBeforeContinueIfNeed();
@@ -540,6 +563,15 @@ uint32 GetTalentSpellCost(uint32 spellId)
     return GetTalentSpellCost(GetTalentSpellPos(spellId));
 }
 
+int32 GetAreaFlagByAreaID(uint32 area_id)
+{
+    AreaTableEntry const* AreaEntry = sAreaStore.LookupEntry(area_id);
+    if (!AreaEntry)
+        return -1;
+
+    return AreaEntry->exploreFlag;
+}
+
 WMOAreaTableEntry const* GetWMOAreaTableEntryByTripple(int32 rootid, int32 adtid, int32 groupid)
 {
     WMOAreaInfoByTripple::iterator i = sWMOAreaInfoByTripple.find(WMOAreaTableTripple(rootid, adtid, groupid));
@@ -548,6 +580,35 @@ WMOAreaTableEntry const* GetWMOAreaTableEntryByTripple(int32 rootid, int32 adtid
     return i->second;
 
 }
+
+AreaTableEntry const* GetAreaEntryByAreaID(uint32 area_id)
+{
+    return sAreaStore.LookupEntry(area_id);
+}
+
+AreaTableEntry const* GetAreaEntryByAreaFlagAndMap(uint32 area_flag, uint32 map_id)
+{
+    // 1.12.1 areatable have duplicates for areaflag
+    for (uint32 i = 0 ; i <= sAreaStore.GetNumRows() ; i++)
+        if (AreaTableEntry const* AreaEntry = sAreaStore.LookupEntry(i))
+            if (AreaEntry->exploreFlag == area_flag && AreaEntry->mapid == map_id)
+                return AreaEntry;
+
+    if (MapEntry const* mapEntry = sMapStorage.LookupEntry<MapEntry>(map_id))
+        return GetAreaEntryByAreaID(mapEntry->linkedZone);
+
+    return NULL;
+}
+
+uint32 GetAreaFlagByMapId(uint32 mapid)
+{
+    AreaFlagByMapID::iterator i = sAreaFlagByMapID.find(mapid);
+    if (i == sAreaFlagByMapID.end())
+        return 0;
+    else
+        return i->second;
+}
+
 
 ChatChannelsEntry const* GetChannelEntryFor(uint32 channel_id)
 {

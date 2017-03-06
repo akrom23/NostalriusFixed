@@ -369,7 +369,7 @@ bool Unit::UpdateMeleeAttackingState()
         return false;
 
     uint8 swingError = 0;
-    if (!CanReachWithMeleeAttack(victim))
+    if (!CanReachWithAutoAttack(victim))
     {
         setAttackTimer(BASE_ATTACK, 100);
         setAttackTimer(OFF_ATTACK, 100);
@@ -787,7 +787,7 @@ uint32 Unit::DealDamage(Unit *pVictim, uint32 damage, CleanDamage const* cleanDa
                 return 0;
 
         DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "DealDamage: victim just died");
-        Kill(pVictim, spellProto, durabilityLoss); // Function too long, we cut
+        Kill(pVictim, spellProto, durabilityLoss); // Nostalrius: fonction deja trop longue, on coupe
         // last damage from non duel opponent or opponent controlled creature
         if (duel_hasEnded)
         {
@@ -1036,14 +1036,14 @@ void Unit::Kill(Unit* pVictim, SpellEntry const *spellProto, bool durabilityLoss
     if (Player* playerVictim = pVictim->ToPlayer())
         playerVictim->RewardHonorOnDeath();
 
-    // To be replaced if possible using ProcDamageAndSpell
-    if (pVictim != this) // The one who has the fatal blow
+    // NOSTALRIUS : IVINA (A remplacer si possible par utilisation de ProcDamageAndSpell)
+    if (pVictim != this) // Celui qui a le coup fatal
         ProcDamageAndSpell(pVictim, PROC_FLAG_KILL, PROC_FLAG_KILLED, PROC_EX_NONE, 0);
 
     DEBUG_FILTER_LOG(LOG_FILTER_DAMAGE, "DealDamageAttackStop");
 
-    // before the stop of combat, the auras of type CM are withdrawn. We must be able to redirect the mobs to the caster.
-    // You should specify 'AURA_REMOVE_BY_DEATH', but this is not useful for these auras.
+    // Nostalrius: avant l'arret du combat, on retire les auras de type CM. Il faut pouvoir rediriger les mobs vers le caster.
+    // Il faudrait specifier 'AURA_REMOVE_BY_DEATH', mais ce n'est pas utile pour ces auras.
     pVictim->RemoveSpellsCausingAura(SPELL_AURA_MOD_CHARM);
     pVictim->RemoveSpellsCausingAura(SPELL_AURA_MOD_POSSESS);
 
@@ -1147,9 +1147,6 @@ void Unit::Kill(Unit* pVictim, SpellEntry const *spellProto, bool durabilityLoss
 
         if (!creature->IsPet())
         {
-            creature->LogDeath(this);
-            creature->UpdateCombatState(false);
-
             creature->DeleteThreatList();
             if (CreatureInfo const *cinfo = creature->GetCreatureInfo())
                 if (cinfo->lootid || cinfo->maxgold > 0)
@@ -1550,7 +1547,7 @@ void Unit::CalculateMeleeDamage(Unit *pVictim, uint32 damage, CalcDamageInfo *da
             ? GetSchoolMask(GetWeaponDamageSchool(damageInfo->attackType, i))
             : GetMeleeDamageSchoolMask();
 
-        if (damageInfo->target->IsImmuneToDamage(subDamage->damageSchoolMask))
+        if (damageInfo->target->IsImmunedToDamage(subDamage->damageSchoolMask))
         {
             subDamage->damage = 0;
             continue;
@@ -2984,7 +2981,7 @@ SpellMissInfo Unit::SpellHitResult(Unit *pVictim, SpellEntry const *spell, bool 
         return SPELL_MISS_EVADE;
 
     // Check for immune (use charges)
-    if (pVictim != this && pVictim->IsImmuneToSpell(spell, pVictim == this))
+    if (pVictim != this && pVictim->IsImmuneToSpell(spell))
         return SPELL_MISS_IMMUNE;
 
     // All positive spells can`t miss
@@ -2999,7 +2996,7 @@ SpellMissInfo Unit::SpellHitResult(Unit *pVictim, SpellEntry const *spell, bool 
     else
         schoolMask = GetSpellSchoolMask(spell);
 
-    if (pVictim != this && pVictim->IsImmuneToDamage(schoolMask))
+    if (pVictim != this && pVictim->IsImmunedToDamage(schoolMask))
         return SPELL_MISS_IMMUNE;
 
     // Try victim reflect spell
@@ -6611,7 +6608,7 @@ int32 Unit::SpellBaseHealingBonusTaken(SpellSchoolMask schoolMask)
     return AdvertisedBenefit;
 }
 
-bool Unit::IsImmuneToDamage(SpellSchoolMask shoolMask)
+bool Unit::IsImmunedToDamage(SpellSchoolMask shoolMask)
 {
     // If m_immuneToSchool type contain this school type, IMMUNE damage.
     SpellImmuneList const& schoolList = m_spellImmune[IMMUNITY_SCHOOL];
@@ -6628,7 +6625,7 @@ bool Unit::IsImmuneToDamage(SpellSchoolMask shoolMask)
     return false;
 }
 
-bool Unit::IsImmuneToSpell(SpellEntry const *spellInfo, bool /*castOnSelf*/)
+bool Unit::IsImmuneToSpell(SpellEntry const* spellInfo)
 {
     if (!spellInfo)
         return false;
@@ -6675,7 +6672,7 @@ bool Unit::IsImmuneToSpell(SpellEntry const *spellInfo, bool /*castOnSelf*/)
     return false;
 }
 
-bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool /*castOnSelf*/) const
+bool Unit::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const
 {
     //If m_immuneToEffect type contain this effect type, IMMUNE effect.
     uint32 effect = spellInfo->Effect[index];
@@ -7132,9 +7129,6 @@ void Unit::ClearInCombat()
 
 bool Unit::isTargetableForAttack(bool inverseAlive /*=false*/) const
 {
-    if (!CanBeDetected())
-        return false;
-
     if (GetTypeId() == TYPEID_PLAYER && (((Player *)this)->isGameMaster() || ((Player*)this)->watching_cinematic_entry != 0))
         return false;
 
@@ -7294,7 +7288,7 @@ int32 Unit::ModifyPower(Powers power, int32 dVal)
     return gain;
 }
 
-bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, bool detect, bool /*inVisibleList*/, bool* alert) const
+bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, bool detect, bool inVisibleList, bool* alert) const
 {
     if (!u || !IsInMap(u))
         return false;
@@ -7314,14 +7308,11 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
         return false;
 
     Map& _map = *u->GetMap();
-    bool isTargetPlayer = u->GetTypeId() == TYPEID_PLAYER;
-    auto pPlayerTarget = isTargetPlayer ? (Player*)u : nullptr;
-
     // Grid dead/alive checks
-    if (isTargetPlayer)
+    if (u->GetTypeId() == TYPEID_PLAYER)
     {
         // non visible at grid for any stealth state
-        if (!IsVisibleInGridForPlayer(pPlayerTarget))
+        if (!IsVisibleInGridForPlayer((Player *)u))
             return false;
 
         // if player is dead then he can't detect anyone in any cases
@@ -7343,12 +7334,12 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
     // unit is also invisible for alive.. if an isinvisibleforalive unit dies we
     // should be able to see it too
     if (u->isAlive() && isAlive() && isInvisibleForAlive() != u->isInvisibleForAlive())
-        if (!isTargetPlayer || !pPlayerTarget->isGameMaster())
+        if (u->GetTypeId() != TYPEID_PLAYER || !((Player *)u)->isGameMaster())
             return false;
 
-    // redundant phasing
-    //if (!u->CanSeeInWorld(this))
-    //    return false;
+    // Nostalrius
+    if (!u->CanSeeInWorld(this))
+        return false;
 
     if (Creature* pCreature = (Creature*)ToCreature())
     {
@@ -7356,17 +7347,19 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
         if (pCreature->AI() && pCreature->AI()->IsVisibleFor(u, bVisible))
             return bVisible;
     }
+    // Fin Nostalrius
 
     // Visible units, always are visible for all units, except for units under invisibility
     if (m_Visibility == VISIBILITY_ON && u->m_invisibilityMask == 0)
         return true;
 
     // GMs see any players, not higher GMs and all units
-    if (isTargetPlayer && pPlayerTarget->isGameMaster())
+    if (u->GetTypeId() == TYPEID_PLAYER && ((Player *)u)->isGameMaster())
     {
         if (GetTypeId() == TYPEID_PLAYER)
-            return ToPlayer()->GetGMInvisibilityLevel() <= uint8(pPlayerTarget->GetSession()->GetSecurity());
-        return true;
+            return ToPlayer()->GetGMInvisibilityLevel() <= uint8(((Player*)u)->GetSession()->GetSecurity());
+        else
+            return true;
     }
 
     // non faction visibility non-breakable for non-GMs
@@ -7374,12 +7367,12 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
         return false;
 
     // raw invisibility
-    bool invisible = m_invisibilityMask != 0;
+    bool invisible = (m_invisibilityMask != 0);
 
     // detectable invisibility case
     if (invisible && (
                 // Invisible units, always are visible for units under same invisibility type
-                m_invisibilityMask & u->m_invisibilityMask ||
+                (m_invisibilityMask & u->m_invisibilityMask) ||
                 // Invisible units, always are visible for unit that can detect this invisibility (have appropriate level for detect)
                 u->canDetectInvisibilityOf(this) ||
                 // Units that can detect invisibility always are visible for units that can be detected
@@ -7393,9 +7386,9 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
         if (!u->IsHostileTo(this))
         {
             // player see other player with stealth/invisibility only if he in same group or raid or same team (raid/team case dependent from conf setting)
-            if (GetTypeId() == TYPEID_PLAYER && isTargetPlayer)
+            if (GetTypeId() == TYPEID_PLAYER && u->GetTypeId() == TYPEID_PLAYER)
             {
-                if (((Player*)this)->IsGroupVisibleFor(pPlayerTarget))
+                if (((Player*)this)->IsGroupVisibleFor(((Player*)u)))
                     return true;
 
                 // else apply same rules as for hostile case (detecting check for stealth)
@@ -7423,7 +7416,7 @@ bool Unit::isVisibleForOrDetect(Unit const* u, WorldObject const* viewPoint, boo
     //players detect players only in Player::HandleStealthedUnitsDetection()
     // Units detect Units only in Units::HandleStealthedUnitsDetection()
     if (!detect)
-        return isTargetPlayer ? pPlayerTarget->IsInVisibleList(this) : false;
+        return (u->GetTypeId() == TYPEID_PLAYER) ? ((Player*)u)->IsInVisibleList(this) : false;
 
     // Special cases
     if (!u->canDetectStealthOf(this, GetDistance(viewPoint), alert))
@@ -7534,7 +7527,7 @@ bool Unit::canDetectStealthOf(Unit const* target, float distance, bool *alert) c
     if (!isInFront)
         return false;
 
-    visibleDistance = 10.5f - target->GetTotalAuraModifier(SPELL_AURA_MOD_STEALTH) / 100.0f;
+    visibleDistance = 10.5f - (target->GetTotalAuraModifier(SPELL_AURA_MOD_STEALTH) / 100.0f);
 
     //Visible distance is modified by
     //-Level Diff (every level diff = 1.0f in visible distance)
@@ -7559,13 +7552,39 @@ bool Unit::canDetectStealthOf(Unit const* target, float distance, bool *alert) c
     {
         if (alert && distance < 15.0f /*TODO: add MAX ALERT DISTANCE config*/)
         {
-            visibleDistance = visibleDistance * 1.08f + 1.5f;
+            visibleDistance = (visibleDistance * 1.08f) + 1.5f;
             *alert = distance < visibleDistance;
         }
         return false;
     }
 
     return true;
+
+    /* OLD FORMULA - DELETE ME
+    // Calcul Nostalrius.
+    // this   = camouflé
+    // target = view
+    // 1. Calcul du niveau de camouflage.
+    int32 stealthMod = target->GetTotalAuraModifier(SPELL_AURA_MOD_STEALTH_LEVEL);
+    if (stealthMod < 0)
+        stealthMod = 0;
+    int32 stealthLevel  = target->GetTotalAuraModifier(SPELL_AURA_MOD_STEALTH) + stealthMod;
+
+    // 2. Calcul du niveau de detection
+    int32 stealthDetect = 5 * GetLevelForTarget(target) + int32(GetTotalAuraModifier(SPELL_AURA_MOD_STEALTH_DETECT));
+
+    // 3. On en déduit par difference la distance de vue
+    float visibleDistance = 10.0f + (stealthDetect - stealthLevel) / 2.5f;
+    if (distance < visibleDistance)
+        return true;
+    if (alert)
+    {
+        visibleDistance = (visibleDistance * 1.08f) + 1.5f;
+        *alert = distance < visibleDistance;
+    }
+
+    return false;
+    */
 }
 
 void Unit::UpdateSpeed(UnitMoveType mtype, bool forced, float ratio)
@@ -9286,35 +9305,33 @@ void Unit::StopMoving()
     DisableSpline();
 }
 
-void Unit::SetFleeing(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 time)
-{
-    if (apply && HasAuraType(SPELL_AURA_PREVENTS_FLEEING))
-        return;
-
-    ModConfuseSpell(apply, casterGuid, spellID, MOV_MOD_FLEE_FOR_ASSISTANCE, time);
-}
-
 void Unit::SetFeared(bool apply, ObjectGuid casterGuid, uint32 spellID, uint32 time)
 {
     if (apply && HasAuraType(SPELL_AURA_PREVENTS_FLEEING))
         return;
-
-    ModConfuseSpell(apply, casterGuid, spellID, MOV_MOD_FLEE_IN_FEAR, time);
+    ModConfuseSpell(apply, casterGuid, spellID, true, time);
 }
 
 void Unit::SetConfused(bool apply, ObjectGuid casterGuid, uint32 spellID)
 {
-    ModConfuseSpell(apply, casterGuid, spellID, MOV_MOD_CONFUSED, 0);
+    ModConfuseSpell(apply, casterGuid, spellID, false, 0);
 }
 
-void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, MovementModType modType, uint32 time)
+
+
+/**
+NOSTALRIUS
+Fonction utilisee par Unit::SetConfused et Unit::SetFeared
+**/
+void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, bool fear, uint32 time)
 {
+    // Ne s'applique pas aux totems
     if (GetTypeId() == TYPEID_UNIT)
         if (ToCreature()->IsTotem())
             return;
 
     bool controlFinished = true;
-
+    // Encore des sorts de confusion
     if (HasAuraType(SPELL_AURA_MOD_CONFUSE))
     {
         controlFinished = false;
@@ -9337,24 +9354,13 @@ void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, Mo
     {
         CastStop(GetObjectGuid() == casterGuid ? spellID : 0);
 
-        switch (modType)
+        if (fear)
         {
-        case MOV_MOD_FLEE_FOR_ASSISTANCE:
-        {
-            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : nullptr;
-            GetMotionMaster()->MoveFleeing(caster, time);
-            break;
+            Unit* caster = IsInWorld() ?  GetMap()->GetUnit(casterGuid) : NULL;
+            GetMotionMaster()->MoveFleeing(caster, time);       // caster==NULL processed in MoveFleeing
         }
-        case MOV_MOD_FLEE_IN_FEAR:
-        {
-            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : nullptr;
-            GetMotionMaster()->MoveFeared(caster, time);
-            break;
-        }            
-        case MOV_MOD_CONFUSED:
+        else
             GetMotionMaster()->MoveConfused();
-            break;
-        }
 
         if (casterGuid != GetObjectGuid())
             InterruptNonMeleeSpells(false);
@@ -9364,21 +9370,11 @@ void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, Mo
     }
     else
     {
-        switch (modType)
-        {
-        case MOV_MOD_FLEE_FOR_ASSISTANCE:
-        case MOV_MOD_FLEE_IN_FEAR:
-        {
-            if (!HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
-                GetMotionMaster()->ClearType(FLEEING_MOTION_TYPE);
-            break;
-        }
-        case MOV_MOD_CONFUSED:
-            if (!HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
-                GetMotionMaster()->ClearType(CONFUSED_MOTION_TYPE);
-            break;
-        }
-
+        if (fear && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_FLEEING))
+            GetMotionMaster()->ClearType(FLEEING_MOTION_TYPE);
+        else if (!fear && !HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_CONFUSED))
+            GetMotionMaster()->ClearType(CONFUSED_MOTION_TYPE);
+        // Nostalrius :
         // Si spellID=0, c'est pour interrompre (par exemple male de temerite - 704)
         // Donc on retire les effets meme si on a encore un aura de fear.
         if (!controlFinished && spellID)
@@ -9386,14 +9382,13 @@ void Unit::ModConfuseSpell(bool apply, ObjectGuid casterGuid, uint32 spellID, Mo
 
         if (GetTypeId() != TYPEID_PLAYER && isAlive())
         {
-            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : nullptr;
+            Unit* caster = IsInWorld() ? GetMap()->GetUnit(casterGuid) : NULL;
             if (caster)
                 AttackedBy(caster);
 
             // restore appropriate movement generator
             if (!SelectHostileTarget())
                 return;
-
             if (getVictim())
                 SetTargetGuid(getVictim()->GetObjectGuid());
 
@@ -9968,9 +9963,6 @@ void Unit::SetPvP(bool state)
     else
         RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PVP);
 
-    if (GetTypeId() == TYPEID_PLAYER && ((Player*)this)->GetGroup())
-        ((Player*)this)->SetGroupUpdateFlag(GROUP_UPDATE_FLAG_STATUS);
-
     CallForAllControlledUnits(SetPvPHelper(state), CONTROLLED_PET | CONTROLLED_TOTEMS | CONTROLLED_GUARDIANS | CONTROLLED_CHARM);
 }
 
@@ -10419,10 +10411,25 @@ float Unit::GetCombatReach(Unit const* pVictim, bool forMeleeRange /*=true*/, fl
 	return reach;
 }
 
-bool Unit::CanReachWithMeleeAttack(Unit const* pVictim, float flat_mod /*= 0.0f*/) const
+bool Unit::CanReachWithMeleeAttack(Unit const * pVictim, float flat_mod) const
+{
+	if (!pVictim || !pVictim->IsInWorld())
+		return false;
+
+	float reach = GetCombatReach(pVictim, true, flat_mod);
+
+	// This check is not related to bounding radius
+	float dx = GetPositionX() - pVictim->GetPositionX();
+	float dy = GetPositionY() - pVictim->GetPositionY();
+	float dz = GetPositionZ() - pVictim->GetPositionZ();
+
+	return (dx * dx + dy * dy + dz * dz < reach * reach);
+}
+
+bool Unit::CanReachWithAutoAttack(Unit const* pVictim, float flat_mod /*= 0.0f*/) const
 {
     if (!pVictim || !pVictim->IsInWorld())
-        return false;
+		return false;
 
     float reach = GetCombatReach(pVictim, true, flat_mod);
 
@@ -10431,22 +10438,11 @@ bool Unit::CanReachWithMeleeAttack(Unit const* pVictim, float flat_mod /*= 0.0f*
     float dy = GetPositionY() - pVictim->GetPositionY();
     float dz = GetPositionZ() - pVictim->GetPositionZ();
 
-    return (dx * dx + dy * dy < reach * reach) && ((dz * dz) < MELEE_Z_LIMIT);
-}
-
-bool Unit::CanReachWithMeleeSpellAttack(Unit const* pVictim, float flat_mod /*= 0.0f*/) const
-{
-    if (!pVictim || !pVictim->IsInWorld())
+    // Limit vertical reach of melee attacks (e.g. for Onyxia phase 2)
+    if ((dz * dz) > MELEE_Z_LIMIT)
         return false;
 
-    float reach = GetCombatReach(pVictim, true, flat_mod);
-
-    // This check is not related to bounding radius
-    float dx = GetPositionX() - pVictim->GetPositionX();
-    float dy = GetPositionY() - pVictim->GetPositionY();
-
-    // melee spells ignore Z-axis checks
-    return dx * dx + dy * dy < reach * reach;
+    return (dx * dx + dy * dy + dz * dz < reach * reach);
 }
 
 Unit* Unit::GetUnit(WorldObject &obj, uint64 const &Guid)

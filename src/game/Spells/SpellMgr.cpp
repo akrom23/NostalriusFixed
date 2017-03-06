@@ -891,7 +891,7 @@ bool IsPositiveEffect(SpellEntry const *spellproto, SpellEffectIndex effIndex)
         return false;
 
     // Attributes check
-    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE)
+    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE_1)
         return false;
 
     // ok, positive
@@ -909,7 +909,7 @@ bool IsPositiveSpell(uint32 spellId)
 
 bool IsPositiveSpell(SpellEntry const *spellproto)
 {
-    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE)
+    if (spellproto->Attributes & SPELL_ATTR_NEGATIVE_1)
         return false;
     // spells with at least one negative effect are considered negative
     // some self-applied spells have negative effects but in self casting case negative check ignored.
@@ -1635,7 +1635,7 @@ bool SpellMgr::IsSpellProcEventCanTriggeredBy(SpellProcEventEntry const * spellP
         procEvent_procEx = spellProcEvent->procEx;
 
         // For melee triggers
-        if (procSpell == nullptr)
+        if (procSpell == NULL)
         {
             // Check (if set) for school (melee attack have Normal school)
             if (spellProcEvent->schoolMask && (spellProcEvent->schoolMask & SPELL_SCHOOL_MASK_NORMAL) == 0)
@@ -2580,7 +2580,7 @@ SpellEntry const* SpellMgr::SelectAuraRankForLevel(SpellEntry const* spellInfo, 
     }
 
     // not found
-    return nullptr;
+    return NULL;
 }
 
 typedef UNORDERED_MAP<uint32, uint32> AbilitySpellPrevMap;
@@ -3524,7 +3524,7 @@ void SpellMgr::LoadSpellAreas()
 
         }
 
-        if (spellArea.areaId && !AreaEntry::GetById(spellArea.areaId))
+        if (spellArea.areaId && !GetAreaEntryByAreaID(spellArea.areaId))
         {
             sLog.outErrorDb("Spell %u listed in `spell_area` have wrong area (%u) requirement", spell, spellArea.areaId);
             continue;
@@ -3676,17 +3676,13 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spell
 
     switch (spellInfo->Id)
     {
-                            // Alterac Valley
+        // a trinket in alterac valley allows to teleport to the boss
         case 22564:                                         // recall
         case 22563:                                         // recall
-        case 23538:                                         // Battle Standard
-        case 23539:
         {
             if (!player)
                 return SPELL_FAILED_REQUIRES_AREA;
-
             BattleGround* bg = player->GetBattleGround();
-
             return player->GetMapId() == 30 && bg
                    && bg->GetStatus() != STATUS_WAIT_JOIN ? SPELL_CAST_OK : SPELL_FAILED_REQUIRES_AREA;
         }
@@ -3739,7 +3735,7 @@ SpellCastResult SpellMgr::GetSpellAllowedInLocationError(SpellEntry const *spell
         }
         return SPELL_FAILED_REQUIRES_AREA;
     }
-    return GetSpellAllowedInLocationError(spellInfo, nullptr /* zone/area already checked */, player);
+    return GetSpellAllowedInLocationError(spellInfo, NULL /* zone/area already checked */, player);
 }
 
 void SpellMgr::LoadSkillLineAbilityMap()
@@ -4251,7 +4247,7 @@ void SpellMgr::LoadSpells()
 {
     uint32 oldMSTime = WorldTimer::getMSTime();
     sLog.outString("Loading spells ...");
-    mSpellEntryMap.resize(sSpellStore.GetNumRows(), nullptr);
+    mSpellEntryMap.resize(sSpellStore.GetNumRows(), NULL);
 
     for (uint32 i = 0; i < sSpellStore.GetNumRows(); ++i)
     {

@@ -403,7 +403,7 @@ UpdateMask Player::updateVisualBits;
 Player::Player(WorldSession *session) : Unit(),
     m_mover(this), m_camera(this), m_reputationMgr(this),
     m_enableInstanceSwitch(true), m_currentTicketCounter(0),
-    m_honorMgr(this), m_bNextRelocationsIgnored(0)
+    m_honorMgr(this)
 {
     m_objectType |= TYPEMASK_PLAYER;
     m_objectTypeId = TYPEID_PLAYER;
@@ -549,8 +549,6 @@ Player::Player(WorldSession *session) : Unit(),
     m_lastFallZ = 0;
 
     watching_cinematic_entry = 0;
-
-    m_cannotBeDetectedTimer = 0;
 
     // Phasing
     worldMask = WORLD_DEFAULT_CHAR;
@@ -1262,9 +1260,6 @@ void Player::Update(uint32 update_diff, uint32 p_time)
             m_zoneUpdateTimer -= update_diff;
     }
 
-    if (m_cannotBeDetectedTimer > 0)
-        m_cannotBeDetectedTimer -= update_diff;
-
     if (isAlive())
         RegenerateAll();
 
@@ -1394,9 +1389,6 @@ void Player::OnDisconnected()
         m_movementInfo.RemoveMovementFlag(MOVEFLAG_MASK_MOVING_OR_TURN);
         SendHeartBeat(false);
     }
-
-    // Player should be leave from channels
-    CleanupChannels();
 }
 
 void Player::RelocateToLastClientPosition()
@@ -1709,9 +1701,6 @@ bool Player::ToggleAFK()
 {
     ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_AFK);
 
-    if (GetGroup())
-        SetGroupUpdateFlag(GROUP_UPDATE_FLAG_STATUS);
-
     bool state = isAFK();
 
     // afk player not allowed in battleground
@@ -1724,9 +1713,6 @@ bool Player::ToggleAFK()
 bool Player::ToggleDND()
 {
     ToggleFlag(PLAYER_FLAGS, PLAYER_FLAGS_DND);
-
-    if (GetGroup())
-        SetGroupUpdateFlag(GROUP_UPDATE_FLAG_STATUS);
 
     return HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_DND);
 }
@@ -2512,6 +2498,12 @@ void Player::SetGMVisible(bool on)
 
 bool Player::isAllowedWhisperFrom(ObjectGuid guid)
 {
+    if (!sWorld.getConfig(CONFIG_BOOL_WHISPER_RESTRICTION))
+        return true;
+
+    if (!isEnabledWhisperRestriction())
+        return true;
+
     if (PlayerSocial* social = GetSocial())
         if (social->HasFriend(guid))
             return true;
@@ -4655,6 +4647,8 @@ void Player::RepopAtGraveyard()
     // note: this can be called also when the player is alive
     // for example from WorldSession::HandleMovementOpcodes
 
+    AreaTableEntry const *zone = GetAreaEntryByAreaID(GetAreaId());
+
     WorldSafeLocsEntry const *ClosestGrave = NULL;
 
     // Special handle for battleground maps
@@ -5801,18 +5795,18 @@ void Player::CheckAreaExploreAndOutdoor()
     {
         SetUInt32Value(PLAYER_EXPLORED_ZONES_1 + offset, (uint32)(currFields | val));
 
-        const auto *p = AreaEntry::GetByAreaFlagAndMap(areaFlag, GetMapId());
+        AreaTableEntry const *p = GetAreaEntryByAreaFlagAndMap(areaFlag, GetMapId());
         if (!p)
             sLog.outError("PLAYER: Player %u discovered unknown area (x: %f y: %f map: %u", GetGUIDLow(), GetPositionX(), GetPositionY(), GetMapId());
-        else if (p->AreaLevel > 0)
+        else if (p->area_level > 0)
         {
             GetCheatData()->OnExplore(p);
-            uint32 area = p->Id;
+            uint32 area = p->ID;
             if (getLevel() >= sWorld.getConfig(CONFIG_UINT32_MAX_PLAYER_LEVEL))
                 SendExplorationExperience(area, 0);
             else
             {
-                int32 diff = int32(getLevel()) - p->AreaLevel;
+                int32 diff = int32(getLevel()) - p->area_level;
                 uint32 XP = 0;
                 if (diff < -5)
                     XP = uint32(sObjectMgr.GetBaseXP(getLevel() + 5) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
@@ -5824,10 +5818,10 @@ void Player::CheckAreaExploreAndOutdoor()
                     else if (exploration_percent < 0)
                         exploration_percent = 0;
 
-                    XP = uint32(sObjectMgr.GetBaseXP(p->AreaLevel) * exploration_percent / 100 * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
+                    XP = uint32(sObjectMgr.GetBaseXP(p->area_level) * exploration_percent / 100 * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
                 }
                 else
-                    XP = uint32(sObjectMgr.GetBaseXP(p->AreaLevel) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
+                    XP = uint32(sObjectMgr.GetBaseXP(p->area_level) * sWorld.getConfig(CONFIG_FLOAT_RATE_XP_EXPLORE));
 
                 GiveXP(XP, NULL);
                 SendExplorationExperience(area, XP);
@@ -6136,11 +6130,11 @@ void Player::UpdateArea(uint32 newArea)
 {
     m_areaUpdateId    = newArea;
 
-    const auto *areaEntry = AreaEntry::GetById(newArea);
+    AreaTableEntry const* area = GetAreaEntryByAreaID(newArea);
 
     // FFA_PVP flags are area and not zone id dependent
     // so apply them accordingly
-    if (areaEntry && (areaEntry->Flags & AREA_FLAG_ARENA))
+    if (area && (area->flags & AREA_FLAG_ARENA))
     {
         if (!isGameMaster())
             SetFFAPvP(true);
@@ -6160,8 +6154,8 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
 {
     uint32 oldZoneId  = m_zoneUpdateId;
 
-    const auto *zoneEntry = AreaEntry::GetById(newZone);
-    if (!zoneEntry)
+    AreaTableEntry const* zone = GetAreaEntryByAreaID(newZone);
+    if (!zone)
         return;
 
     if (m_zoneUpdateId != newZone)
@@ -6172,9 +6166,9 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
 
         if (sWorld.getConfig(CONFIG_BOOL_WEATHER))
         {
-            if (Weather *wth = sWorld.FindWeather(zoneEntry->Id))
+            if (Weather *wth = sWorld.FindWeather(zone->ID))
                 wth->SendWeatherUpdateToPlayer(this);
-            else if (!sWorld.AddWeather(zoneEntry->Id))
+            else if (!sWorld.AddWeather(zone->ID))
             {
                 // send fine weather packet to remove old zone's weather
                 Weather::SendFineWeatherUpdateToPlayer(this);
@@ -6190,13 +6184,13 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
 
     // in PvP, any not controlled zone (except zone->team == 6, default case)
     // in PvE, only opposition team capital
-    switch (zoneEntry->Team)
+    switch (zone->team)
     {
         case AREATEAM_ALLY:
-            pvpInfo.inHostileArea = GetTeam() != ALLIANCE && (sWorld.IsPvPRealm() || zoneEntry->Flags & AREA_FLAG_CAPITAL);
+            pvpInfo.inHostileArea = GetTeam() != ALLIANCE && (sWorld.IsPvPRealm() || zone->flags & AREA_FLAG_CAPITAL);
             break;
         case AREATEAM_HORDE:
-            pvpInfo.inHostileArea = GetTeam() != HORDE && (sWorld.IsPvPRealm() || zoneEntry->Flags & AREA_FLAG_CAPITAL);
+            pvpInfo.inHostileArea = GetTeam() != HORDE && (sWorld.IsPvPRealm() || zone->flags & AREA_FLAG_CAPITAL);
             break;
         case AREATEAM_NONE:
             // overwrite for battlegrounds, maybe batter some zone flags but current known not 100% fit to this
@@ -6218,7 +6212,7 @@ void Player::UpdateZone(uint32 newZone, uint32 newArea)
             pvpInfo.endTimer = time(NULL);                     // start toggle-off
     }
 
-    if (zoneEntry->Flags & AREA_FLAG_CAPITAL && !pvpInfo.inHostileArea)     // in capital city
+    if (zone->flags & AREA_FLAG_CAPITAL && !pvpInfo.inHostileArea)     // in capital city
         SetRestType(REST_TYPE_IN_CITY);
     else if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_RESTING) && GetRestType() != REST_TYPE_IN_TAVERN)
         // resting and not in tavern (leave city then); tavern leave handled in CheckAreaExploreAndOutdoor
@@ -7363,41 +7357,31 @@ void Player::SendLoot(ObjectGuid guid, LootType loot_type, Player* pVictim)
                 return;
             }
 
-            loot = &creature->loot;
+            loot   = &creature->loot;
 
             if (loot_type == LOOT_PICKPOCKETING)
             {
+                loot->clear();
 
                 uint32 lootid = creature->GetCreatureInfo()->pickpocketLootId;
 
-                if (!creature->lootForPickPocketed)
-                {
-                    loot->clear();
-                    // Fill loot for first time
-                    if (lootid)
-                        loot->FillLoot(lootid, LootTemplates_Pickpocketing, this, false);
-
+		if (lootid)
+                    loot->FillLoot(lootid, LootTemplates_Pickpocketing, this, false);
+			    
+		if (!creature->lootForPickPocketed)
+		{
                     // Generate extra money for pick pocket loot
                     const uint32 a = urand(0, creature->getLevel() / 2);
                     const uint32 b = urand(0, getLevel() / 2);
-                    loot->gold += uint32(10 * (a + b) * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY));
-
-                    creature->lootForPickPocketed = true;
-                }
-                else if (loot->empty() || !loot->IsOriginalLooter(GetObjectGuid()))
-                {
-                    // If not original pickpocketer or empty
-                    // Clear loot and generate only q items
-                    loot->clear();
-
-                    if (lootid)
-                        loot->FillLoot(lootid, LootTemplates_Pickpocketing, this, false);
-
-                    loot->leaveOnlyQuestItems();
-                }
+	   	    loot->gold = uint32(10 * (a + b) * sWorld.getConfig(CONFIG_FLOAT_RATE_DROP_MONEY));
+			
+		    creature->lootForPickPocketed = true;
+		}
+		else
+		    loot->leaveOnlyQuestItems();
 
                 permission = OWNER_PERMISSION;
-
+		    
                 if (creature->GetInstanceId())
                     creature->GetMap()->BindToInstanceOrRaid(this, creature->GetRespawnTimeEx(), false);
             }
@@ -14421,9 +14405,6 @@ void Player::_LoadAuras(QueryResult *result, uint32 timediff)
 
     if (getClass() == CLASS_WARRIOR && !HasAuraType(SPELL_AURA_MOD_SHAPESHIFT))
         CastSpell(this, SPELL_ID_PASSIVE_BATTLE_STANCE, true);
-
-    if (GetGroup())
-        SetGroupUpdateFlag(GROUP_UPDATE_FLAG_STATUS);
 }
 
 void Player::LoadAura(AuraSaveStruct& s, uint32 timediff)
@@ -14867,7 +14848,6 @@ void Player::_LoadGroup(QueryResult *result)
             SetGroup(group, subgroup);
         }
     }
-    UpdateGroupLeaderFlag();
 }
 
 void Player::_LoadBoundInstances(QueryResult *result)
@@ -15172,7 +15152,7 @@ bool Player::_LoadHomeBind(QueryResult *result)
 /***                   SAVE SYSTEM                     ***/
 /*********************************************************/
 
-void Player::SaveToDB(bool online, bool force)
+void Player::SaveToDB(bool online)
 {
     // we should assure this: ASSERT((m_nextSave != sWorld.getConfig(CONFIG_UINT32_INTERVAL_SAVE)));
     // delay auto save at any saves (manual, in code, or autosave)
@@ -15185,7 +15165,7 @@ void Player::SaveToDB(bool online, bool force)
         return;
 
     //lets allow only players in world to be saved
-    if (!force && IsBeingTeleportedFar())
+    if (IsBeingTeleportedFar())
     {
         ScheduleDelayedOperation(DELAYED_SAVE_PLAYER);
         return;
@@ -15970,9 +15950,6 @@ void Player::SetFFAPvP(bool state)
         SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_FFA_PVP);
     else
         RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_FFA_PVP);
-
-    if (GetGroup())
-        SetGroupUpdateFlag(GROUP_UPDATE_FLAG_STATUS);
 }
 
 bool Player::IsInInterFactionMode() const
@@ -17038,9 +17015,6 @@ void Player::LeaveBattleground(bool teleportToEntryPoint)
     //ClearUpdateMask( true );
     if (BattleGround *bg = GetBattleGround())
     {
-        // nor more Waiting to Resurrect
-        RemoveAurasDueToSpell(2584);
-
         if (!isGameMaster() && sWorld.getConfig(CONFIG_BOOL_BATTLEGROUND_CAST_DESERTER))
         {
             if (bg->GetStatus() == STATUS_IN_PROGRESS || bg->GetStatus() == STATUS_WAIT_JOIN)
@@ -18147,8 +18121,7 @@ bool Player::isHonorOrXPTarget(Unit* pVictim) const
     {
         if (((Creature*)pVictim)->IsTotem() ||
                 ((Creature*)pVictim)->IsPet() ||
-                ((Creature*)pVictim)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_XP_AT_KILL ||
-                pVictim->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NO_KILL_REWARD))
+                ((Creature*)pVictim)->GetCreatureInfo()->flags_extra & CREATURE_FLAG_EXTRA_NO_XP_AT_KILL)
             return false;
     }
     return true;
@@ -18463,18 +18436,6 @@ PartyResult Player::CanUninviteFromGroup(ObjectGuid uninvitedGuid) const
     return ERR_PARTY_RESULT_OK;
 }
 
-void Player::UpdateGroupLeaderFlag(const bool remove /*= false*/)
-{
-    const Group* group = GetGroup();
-    if (HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GROUP_LEADER))
-    {
-        if (remove || !group || group->GetLeaderGuid() != GetObjectGuid())
-            RemoveFlag(PLAYER_FLAGS, PLAYER_FLAGS_GROUP_LEADER);
-    }
-    else if (!remove && group && group->GetLeaderGuid() == GetObjectGuid())
-        SetFlag(PLAYER_FLAGS, PLAYER_FLAGS_GROUP_LEADER);
-}
-
 void Player::SetBattleGroundRaid(Group* group, int8 subgroup)
 {
     //we must move references from m_group to m_originalGroup
@@ -18781,7 +18742,7 @@ void Player::HandleFall(MovementInfo const& movementInfo)
     // 14.57 can be calculated by resolving damageperc formula below to 0
     if (z_diff >= 14.57f && !isDead() && !isGameMaster() &&
             !HasAuraType(SPELL_AURA_HOVER) && !HasAuraType(SPELL_AURA_FEATHER_FALL) &&
-            !IsImmuneToDamage(SPELL_SCHOOL_MASK_NORMAL))
+            !IsImmunedToDamage(SPELL_SCHOOL_MASK_NORMAL))
     {
         //Safe fall, fall height reduction
         int32 safe_fall = GetTotalAuraModifier(SPELL_AURA_SAFE_FALL);
@@ -19635,7 +19596,7 @@ bool Player::ChangeQuestsForRace(uint8 oldRace, uint8 newRace)
     return true;
 }
 
-bool Player::IsImmuneToSpellEffect(SpellEntry const *spellInfo, SpellEffectIndex index, bool castOnSelf) const
+bool Player::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const
 {
     switch (spellInfo->Effect[index])
     {

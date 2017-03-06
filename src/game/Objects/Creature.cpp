@@ -161,18 +161,19 @@ bool CreatureCreatePos::Relocate(Creature* cr) const
 
 Creature::Creature(CreatureSubtype subtype) :
     Unit(), i_AI(nullptr),
-    loot(this), lootForPickPocketed(false), lootForBody(false), lootForSkin(false), skinningForOthersTimer(5000), m_TargetNotReachableTimer(0),
-    _pacifiedTimer(0), _manaRegen(true),
-    m_groupLootTimer(0), m_groupLootId(0), m_lootMoney(0), m_lootGroupRecipientId(0), m_corpseDecayTimer(0),
-    m_respawnTime(0), m_respawnDelay(25), m_corpseDelay(60),
-    m_respawnradius(5.0f), m_combatStartTime(0), m_combatState(false), m_combatResetCount(0), m_subtype(subtype),
-    m_defaultMovementType(IDLE_MOTION_TYPE), m_equipmentId(0), m_AlreadyCallAssistance(false),
-    m_AlreadySearchedAssistance(false),
-    m_regenHealth(true), m_AI_locked(false), m_isDeadByDefault(false), m_temporaryFactionFlags(TEMPFACTION_NONE),
-    m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0), _creatureGroup(nullptr),
+    lootForPickPocketed(false), lootForBody(false), lootForSkin(false), skinningForOthersTimer(5000), m_groupLootTimer(0), m_groupLootId(0),
+    m_lootMoney(0), m_lootGroupRecipientId(0),
+    m_corpseDecayTimer(0), m_respawnTime(0), m_respawnDelay(25), m_corpseDelay(60), m_respawnradius(5.0f),
+    m_subtype(subtype), m_defaultMovementType(IDLE_MOTION_TYPE), m_equipmentId(0),
+    m_AlreadyCallAssistance(false), m_AlreadySearchedAssistance(false),
+    m_regenHealth(true), m_AI_locked(false), m_isDeadByDefault(false),
+    m_meleeDamageSchoolMask(SPELL_SCHOOL_MASK_NORMAL), m_originalEntry(0), m_temporaryFactionFlags(TEMPFACTION_NONE),
+    m_creatureInfo(nullptr),
+    m_HomeX(0.0f), m_HomeY(0.0f), m_HomeZ(0.0f), m_HomeOrientation(0.0f),
     m_combatStartX(0.0f), m_combatStartY(0.0f), m_combatStartZ(0.0f),
-    m_HomeX(0.0f), m_HomeY(0.0f), m_HomeZ(0.0f), m_HomeOrientation(0.0f), m_reactState(REACT_PASSIVE),
-    m_CombatDistance(0.0f), _lastDamageTakenForEvade(0), _playerDamageTaken(0), _nonPlayerDamageTaken(0), m_creatureInfo(nullptr)
+    m_CombatDistance(0.0f), _lastDamageTakenForEvade(0), _pacifiedTimer(0),
+    _manaRegen(true), loot(this), _creatureGroup(nullptr), m_TargetNotReachableTimer(0), m_reactState(REACT_PASSIVE),
+    _playerDamageTaken(0), _nonPlayerDamageTaken(0)
 {
     m_regenTimer = 200;
     m_valuesCount = UNIT_END;
@@ -655,13 +656,6 @@ void Creature::Update(uint32 update_diff, uint32 diff)
             }
             else
                 m_TargetNotReachableTimer = 0;
-
-            if (m_combatState && GetCombatTime(false) > sWorld.getConfig(CONFIG_UINT32_LONGCOMBAT))
-            {
-                LogLongCombat();
-                ResetCombatTime(true);
-            }
-
             if (AI())
             {
                 // do not allow the AI to be changed during update
@@ -813,7 +807,7 @@ void Creature::DoFleeToGetAssistance()
         SetNoSearchAssistance(true);
 
         if (!pCreature)
-            SetFleeing(true, getVictim()->GetObjectGuid(), 0, sWorld.getConfig(CONFIG_UINT32_CREATURE_FAMILY_FLEE_DELAY));
+            SetFeared(true, getVictim()->GetObjectGuid(), 0 , sWorld.getConfig(CONFIG_UINT32_CREATURE_FAMILY_FLEE_DELAY));
         else
         {
             GetMotionMaster()->MoveSeekAssistance(pCreature->GetPositionX(), pCreature->GetPositionY(), pCreature->GetPositionZ());
@@ -1740,19 +1734,13 @@ void Creature::ForcedDespawn(uint32 timeMSToDespawn)
     SetHealth(0);                                           // just for nice GM-mode view
 }
 
-bool Creature::IsImmuneToSpell(SpellEntry const *spellInfo, bool castOnSelf)
+bool Creature::IsImmuneToSpell(SpellEntry const* spellInfo)
 {
     if (!spellInfo)
         return false;
 
-    if (!castOnSelf)
-    {
-        if (spellInfo->Mechanic && GetCreatureInfo()->MechanicImmuneMask & (1 << (spellInfo->Mechanic - 1)))
-            return true;
-        
-        if (GetCreatureInfo()->SchoolImmuneMask & (1 << spellInfo->School))
-            return true;
-    }
+    if (spellInfo->Mechanic && GetCreatureInfo()->MechanicImmuneMask & (1 << (spellInfo->Mechanic - 1)))
+        return true;
         
     // HACK! Bosses are immune to cast speed debuffs like Curse of Tongues 
     if (IsWorldBoss())
@@ -1762,33 +1750,14 @@ bool Creature::IsImmuneToSpell(SpellEntry const *spellInfo, bool castOnSelf)
             if (GetCreatureInfo()->Entry != 15263)  // The Prophet Skeram
                 return true;
         }
-
-        if (spellInfo->IsFitToFamily<SPELLFAMILY_HUNTER, CF_HUNTER_SCORPID_STING>())
-            return true;
-
-        switch (spellInfo->Id)
-        {
-        case 67:              // Vindication
-        case 26017:
-        case 26018:
-            return true;
-        }
     }
 
-    return Unit::IsImmuneToSpell(spellInfo, castOnSelf);
+    return Unit::IsImmuneToSpell(spellInfo);
 }
 
-bool Creature::IsImmuneToDamage(SpellSchoolMask meleeSchoolMask)
+bool Creature::IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const
 {
-    if (GetCreatureInfo()->SchoolImmuneMask & meleeSchoolMask)
-        return true;
-
-    return Unit::IsImmuneToDamage(meleeSchoolMask);
-}
-
-bool Creature::IsImmuneToSpellEffect(SpellEntry const *spellInfo, SpellEffectIndex index, bool castOnSelf) const
-{
-    if (!castOnSelf && spellInfo->EffectMechanic[index] && GetCreatureInfo()->MechanicImmuneMask & (1 << (spellInfo->EffectMechanic[index] - 1)))
+    if (spellInfo->EffectMechanic[index] && GetCreatureInfo()->MechanicImmuneMask & (1 << (spellInfo->EffectMechanic[index] - 1)))
         return true;
 
     // Taunt immunity special flag check
@@ -2134,25 +2103,41 @@ void Creature::SaveRespawnTime()
 
 bool Creature::IsOutOfThreatArea(Unit* pVictim) const
 {
-    // In dungeons, there is no threat area limit - only for active creatures (technical limitation, non actives are not updated without players around them)
-    if (GetMap()->IsDungeon())
-        return false;
-
     if (!pVictim)
         return true;
 
-    if (pVictim->IsInMap(this))
-    {
-        float AttackDist = GetAttackDistance(pVictim);
-        float ThreatRadius = sWorld.getConfig(CONFIG_FLOAT_THREAT_RADIUS);
+    if (!pVictim->IsInMap(this))
+        return true;
 
-        //Use AttackDistance in distance check if threat radius is lower. This prevents creature bounce in and out of combat every update tick.
-        float threatAreaDistance = ThreatRadius > AttackDist ? ThreatRadius : AttackDist;
-        bool inThreatArea = pVictim->IsWithinDist3d(m_combatStartX, m_combatStartY, m_combatStartZ, threatAreaDistance);
-        if (!inThreatArea && _lastDamageTakenForEvade > 12000)
-            return true;
-    }
+    if (!pVictim->isTargetableForAttack())
+        return true;
 
+    // Make critters auto evade - fix combat bug.
+    if (GetCreatureType() == CREATURE_TYPE_CRITTER && _lastDamageTakenForEvade > 10000)
+        return true;
+
+    // In dungeons, there is no threat area limit - only for active creatures (technical limitation, non actives are not updated without players around them)
+    if (sMapStorage.LookupEntry<MapEntry>(GetMapId())->IsDungeon())
+        return false;
+
+    /*  
+        //this introduced a lot of combat bugs in the world, especially for paladins
+        //maybe ok to reenable for isactiveobject, but disabling both for now
+    if (!isActiveObject() && !pVictim->isWithinVisibilityDistanceOf(this, this))
+        return false;
+
+    if (isActiveObject() && !pVictim->isWithinVisibilityDistanceOf(this, this))
+        return false;
+    */
+
+    float AttackDist = GetAttackDistance(pVictim);
+    float ThreatRadius = sWorld.getConfig(CONFIG_FLOAT_THREAT_RADIUS);
+
+    //Use AttackDistance in distance check if threat radius is lower. This prevents creature bounce in and out of combat every update tick.
+    float threatAreaDistance = ThreatRadius > AttackDist ? ThreatRadius : AttackDist;
+    bool inThreatArea = pVictim->IsWithinDist3d(m_combatStartX, m_combatStartY, m_combatStartZ, threatAreaDistance);
+    if (!inThreatArea && _lastDamageTakenForEvade > 12000)
+        return true;
     return false;
 }
 
@@ -2296,35 +2281,22 @@ bool Creature::MeetsSelectAttackingRequirement(Unit* pTarget, SpellEntry const* 
 {
     if (selectFlags & SELECT_FLAG_PLAYER && pTarget->GetTypeId() != TYPEID_PLAYER)
         return false;
-
     if (selectFlags & SELECT_FLAG_NO_TOTEM && pTarget->ToCreature() && pTarget->ToCreature()->IsTotem())
         return false;
 
     if (selectFlags & SELECT_FLAG_POWER_MANA && pTarget->getPowerType() != POWER_MANA)
         return false;
-
-    if (selectFlags & SELECT_FLAG_POWER_RAGE && pTarget->getPowerType() != POWER_RAGE)
+    else if (selectFlags & SELECT_FLAG_POWER_RAGE && pTarget->getPowerType() != POWER_RAGE)
         return false;
-
-    if (selectFlags & SELECT_FLAG_POWER_ENERGY && pTarget->getPowerType() != POWER_ENERGY)
+    else if (selectFlags & SELECT_FLAG_POWER_ENERGY && pTarget->getPowerType() != POWER_ENERGY)
         return false;
 
     if (selectFlags & SELECT_FLAG_IN_MELEE_RANGE && !IsWithinMeleeRange(pTarget))
         return false;
-
     if (selectFlags & SELECT_FLAG_NOT_IN_MELEE_RANGE && IsWithinMeleeRange(pTarget))
         return false;
 
     if (selectFlags & SELECT_FLAG_IN_LOS && !IsWithinLOSInMap(pTarget))
-        return false;
-
-    if (selectFlags & SELECT_FLAG_PLAYER_NOT_GM && (pTarget->GetTypeId() != TYPEID_PLAYER || pTarget->ToPlayer()->isGameMaster()))
-        return false;
-
-    if (selectFlags & SELECT_FLAG_PET && !pTarget->ToPet())
-        return false;
-
-    if (selectFlags & SELECT_FLAG_NOT_PLAYER && pTarget->GetTypeId() == TYPEID_PLAYER)
         return false;
 
     if (pSpellInfo)
@@ -2350,136 +2322,6 @@ bool Creature::MeetsSelectAttackingRequirement(Unit* pTarget, SpellEntry const* 
     return true;
 }
 
-
-void Creature::LogDeath(Unit* pKiller) const
-{
-    if (!LogsDatabase || !sWorld.getConfig(CONFIG_BOOL_SMARTLOG_DEATH))
-        return;
-
-    // by default we log bosses only
-    if (!IsWorldBoss())
-    {
-        if (sLog.m_smartlogExtraEntries.empty() && sLog.m_smartlogExtraGuids.empty())
-            return;
-
-        // if entry or guid matches one of extra values from config we log too
-        bool extraEntry = std::find(sLog.m_smartlogExtraEntries.begin(), sLog.m_smartlogExtraEntries.end(), GetEntry()) != sLog.m_smartlogExtraEntries.end();
-        bool extraGuid = std::find(sLog.m_smartlogExtraGuids.begin(), sLog.m_smartlogExtraGuids.end(), GetGUIDLow()) != sLog.m_smartlogExtraGuids.end();
-
-        if (!extraEntry && !extraGuid)
-            return;
-    }
-
-    static SqlStatementID insLogDeath;
-    SqlStatement logStmt = LogsDatabase.CreateStatement(insLogDeath, "INSERT INTO smartlog_creature SET type=?, entry=?, guid=?, specifier=?, combatTime=?, content=?");
-
-    logStmt.addString("Death");
-    logStmt.addInt32(GetEntry());
-    logStmt.addInt32(GetGUIDLow());
-
-    const MapEntry* mapEntry = sMapStorage.LookupEntry<MapEntry>(GetMapId());
-    std::string result0 = mapEntry->name;
-
-    logStmt.addString(result0 + "." + GetName());
-    logStmt.addInt32(GetCombatTime(true));
-
-    if (pKiller)
-    {
-        // 1: we try to extract player from last hit
-        auto pPlayer = pKiller->GetCharmerOrOwnerPlayerOrPlayerItself();
-        bool lasthit = true;
-
-        // 2: we try to extract player from threat list
-        Unit* pUnit = nullptr;
-        if (!pPlayer)
-        {
-            pUnit = SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER);
-            lasthit = false;
-            
-            if (pUnit)
-                pPlayer = static_cast<Player*>(pUnit);
-        }
-
-        if (pPlayer)
-        {
-            std::string result1 = lasthit ? "Last hit by player: <" : "One of players: <";
-            result1 += pPlayer->GetName();
-
-            if (pPlayer->GetMap()->Instanceable())
-                result1 += "> with instanceId <" + std::to_string(pPlayer->GetInstanceId());
-
-            result1 += ">.";
-
-            logStmt.addString(result1);
-        }
-        else if (pUnit)
-        {
-            if (auto pCreature = pUnit->ToCreature())
-            {
-                std::string result1 = "Last hit by creature: <";
-                result1 += pCreature->GetName();
-                result1 += "> with entry <";
-                result1 += pCreature->GetEntry();
-                result1 += ">.";
-                logStmt.addString(result1);
-            }
-            else
-                logStmt.addString("Dead not by creature or player, unit exists though.");
-        }
-        else
-            logStmt.addString("Dead not by creature or player, unit not exists.");
-    }
-    else
-    {
-        logStmt.addString("Unknown death reason (no argument passed).");
-    }
-    
-    logStmt.Execute();
-}
-
-void Creature::LogLongCombat() const
-{
-    if (!LogsDatabase || !sWorld.getConfig(CONFIG_BOOL_SMARTLOG_LONGCOMBAT))
-        return;
-
-    static SqlStatementID insLogDeath;
-    SqlStatement logStmt = LogsDatabase.CreateStatement(insLogDeath, "INSERT INTO smartlog_creature SET type=?, entry=?, guid=?, specifier=?, combatTime=?, content=?");
-
-    logStmt.addString("LongCombat");
-    logStmt.addInt32(GetEntry());
-    logStmt.addInt32(GetGUIDLow());
-
-    const MapEntry* mapEntry = sMapStorage.LookupEntry<MapEntry>(GetMapId());
-    std::string result0 = mapEntry->name;
-
-    logStmt.addString(result0 + "." + GetName());
-    logStmt.addInt32(GetCombatTime(true));
-    logStmt.addString("");
-
-    logStmt.Execute();
-}
-
-void Creature::LogScriptInfo(std::ostringstream &data) const
-{
-    if (!LogsDatabase || !sWorld.getConfig(CONFIG_BOOL_SMARTLOG_SCRIPTINFO))
-        return;
-
-    static SqlStatementID insLogDeath;
-    SqlStatement logStmt = LogsDatabase.CreateStatement(insLogDeath, "INSERT INTO smartlog_creature SET type=?, entry=?, guid=?, specifier=?, combatTime=?, content=?");
-
-    logStmt.addString("ScriptInfo");
-    logStmt.addInt32(GetEntry());
-    logStmt.addInt32(GetGUIDLow());
-
-    const MapEntry* mapEntry = sMapStorage.LookupEntry<MapEntry>(GetMapId());
-    std::string result0 = mapEntry->name;
-
-    logStmt.addString(result0 + "." + GetName());
-    logStmt.addInt32(GetCombatTime(true));
-    logStmt.addString(data);
-
-    logStmt.Execute();
-}
 
 Unit* Creature::SelectAttackingTarget(AttackingTarget target, uint32 position, uint32 spellId, uint32 selectFlags) const
 {
@@ -2910,8 +2752,6 @@ void Creature::SetHomePosition(float x, float y, float z, float o)
 
 void Creature::OnLeaveCombat()
 {
-    UpdateCombatState(false);
-
     if (_creatureGroup)
         _creatureGroup->OnLeaveCombat(this);
 
@@ -2936,15 +2776,10 @@ void Creature::OnEnterCombat(Unit* pWho, bool notInCombat)
     // Pas encore en combat.
     if (notInCombat)
     {
-        ResetCombatTime();
-        UpdateCombatState(true);
-
         SetStandState(UNIT_STAND_STATE_STAND);
         _pacifiedTimer = 0;
-
         if (m_zoneScript)
             m_zoneScript->OnCreatureEnterCombat(this);
-
         if (i_AI)
             i_AI->EnterCombat(pWho);
     }
@@ -3221,7 +3056,7 @@ bool Creature::canCreatureAttack(Unit const *pVictim, bool force) const
     if (!canAttack(pVictim, force))
         return false;
 
-    if (GetMap()->IsDungeon())
+    if (sMapStorage.LookupEntry<MapEntry>(GetMapId())->IsDungeon())
         return true;
 
     //Use AttackDistance in distance check if threat radius is lower. This prevents creature bounce in and out of combat every update tick.
@@ -3238,23 +3073,6 @@ bool Creature::canCreatureAttack(Unit const *pVictim, bool force) const
     if (!pVictim->isInAccessablePlaceFor(this))
         return false;
     return true;
-}
-
-time_t Creature::GetCombatTime(bool total) const
-{
-    auto diff = time(nullptr) - m_combatStartTime;
-
-    return total ? sWorld.getConfig(CONFIG_UINT32_LONGCOMBAT) * m_combatResetCount + diff : diff;
-}
-
-void Creature::ResetCombatTime(bool combat)
-{
-    m_combatStartTime = time(nullptr);
-
-    if (combat)
-        ++m_combatResetCount;
-    else
-        m_combatResetCount = 0;
 }
 
 bool Creature::canStartAttack(Unit const* who, bool force) const

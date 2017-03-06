@@ -166,7 +166,6 @@ typedef UNORDERED_MAP<uint32,PageTextLocale> PageTextLocaleMap;
 typedef UNORDERED_MAP<int32,MangosStringLocale> MangosStringLocaleMap;
 typedef UNORDERED_MAP<uint32,GossipMenuItemsLocale> GossipMenuItemsLocaleMap;
 typedef UNORDERED_MAP<uint32,PointOfInterestLocale> PointOfInterestLocaleMap;
-typedef UNORDERED_MAP<uint32,AreaLocale> AreaLocaleMap;
 
 typedef std::multimap<int32, uint32> ExclusiveQuestGroupsMap;
 typedef std::multimap<uint32, ItemRequiredTarget> ItemRequiredTargetMap;
@@ -579,8 +578,6 @@ class ObjectMgr
         Group* GetGroupById(uint32 id) const;
         void AddGroup(Group* group);
         void RemoveGroup(Group* group);
-        GroupMap::iterator GetGroupMapBegin() { return mGroupMap.begin(); }
-        GroupMap::iterator GetGroupMapEnd() { return mGroupMap.end(); }
 
         static CreatureInfo const *GetCreatureTemplate( uint32 id );
         CreatureModelInfo const *GetCreatureModelInfo( uint32 modelid );
@@ -761,8 +758,6 @@ class ObjectMgr
         void LoadPointOfInterestLocales();
         void LoadMapTemplate();
         void LoadConditions();
-        void LoadAreaTemplate();
-        void LoadAreaLocales();
 
         void LoadGossipText();
 
@@ -945,14 +940,6 @@ class ObjectMgr
         {
             auto itr = mPointOfInterestLocaleMap.find(poi_id);
             if(itr==mPointOfInterestLocaleMap.end()) return nullptr;
-            return &itr->second;
-        }
-
-        void GetAreaLocaleString(uint32 entry, int32 loc_idx, std::string* namePtr) const;
-        AreaLocale const* GetAreaLocale(uint32 entry) const
-        {
-            AreaLocaleMap::const_iterator itr = mAreaLocaleMap.find(entry);
-            if (itr == mAreaLocaleMap.end()) return nullptr;
             return &itr->second;
         }
 
@@ -1146,14 +1133,14 @@ class ObjectMgr
 
         // Caching Player Data
         void LoadPlayerCacheData();
-        PlayerCacheData* GetPlayerDataByGUID(uint32 lowGuid);
+        PlayerCacheData* GetPlayerDataByGUID(uint32 guidLow);
         PlayerCacheData* GetPlayerDataByName(const std::string& name);
         void InsertPlayerInCache(Player *pPlayer);
-        void InsertPlayerInCache(uint32 lowGuid, uint32 race, uint32 _class, uint32 uiGender, uint32 account, const std::string& name, uint32 level, uint32 zoneId);
-        void DeletePlayerFromCache(uint32 lowGuid);
-        void ChangePlayerNameInCache(uint32 lowGuid, const std::string& oldName, const std::string& newName);
+        void InsertPlayerInCache(uint32 Guid, uint32 uiRace, uint32 uiClass, uint32 uiGender, uint32 account, const std::string& name, uint32 level, uint32 zoneId);
+        void DeletePlayerFromCache(uint32 uiGuid);
+        void SavePlayerName(uint32 guidLow, const std::string& newName);
 
-        PlayerCacheDataMap m_playerCacheData;
+        PlayerCacheDataMap m_PlayerCacheData;
         std::map<std::string, uint32> m_playerNameToGuid;
 
         uint32 AddCreData(uint32 entry, uint32 team, uint32 map, float, float, float, float, uint32 spawnDelay);
@@ -1319,7 +1306,6 @@ class ObjectMgr
         MangosStringLocaleMap mMangosStringLocaleMap;
         GossipMenuItemsLocaleMap mGossipMenuItemsLocaleMap;
         PointOfInterestLocaleMap mPointOfInterestLocaleMap;
-        AreaLocaleMap mAreaLocaleMap;
 
         // Storage for Conditions. First element (index 0) is reserved for zero-condition (nothing required)
         typedef std::vector<PlayerCondition> ConditionStore;

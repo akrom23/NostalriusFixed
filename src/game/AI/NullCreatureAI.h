@@ -32,11 +32,11 @@ class MANGOS_DLL_DECL NullCreatureAI : public CreatureAI
         }
         ~NullCreatureAI();
 
-        void MoveInLineOfSight(Unit *) override {}
-        void AttackStart(Unit *) override {}
-        void AttackedBy(Unit *) override {}
+        void MoveInLineOfSight(Unit *) {}
+        void AttackStart(Unit *) {}
+        void AttackedBy( Unit *) {}
 
-        void UpdateAI(const uint32) override;
+        void UpdateAI(const uint32);
         static int Permissible(const Creature *) { return PERMIT_BASE_IDLE;  }
 };
 #endif

@@ -109,13 +109,10 @@ bool Guild::Create(Player* leader, std::string gname)
         return false;
 
     // Check guild name (use whisper type - 6)
-    if (AntispamInterface *a = sAnticheatLib->GetAntispam())
+    if (sAnticheatLib->FilterChatMessage(lSession->GetPlayerPointer(), 6, gname))
     {
-        if (a->filterMessage(gname))
-        {
-            sWorld.LogChat(lSession, "Guild", "Attempt to create guild with spam name" + gname);
-            return false;
-        }
+        sWorld.LogChat(lSession, "Guild", "Attempt to create guild with spam name" + gname);
+        return false;
     }
 
     m_LeaderGuid = leader->GetObjectGuid();

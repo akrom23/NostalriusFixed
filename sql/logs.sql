@@ -73,18 +73,16 @@ CREATE TABLE `logs_chat` (
   KEY `target` (`target`)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8;
 
-/*Table structure for table `logs_spamdetect` */
+/*Table structure for table `logs_spamdetector` */
 
-DROP TABLE IF EXISTS `logs_spamdetect`;
+DROP TABLE IF EXISTS `logs_spamdetector`;
 
-CREATE TABLE `logs_spamdetect` (
-  `time` timestamp NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `accountId` int(11) DEFAULT '0',
-  `guid` int(11) NOT NULL DEFAULT '0',
-  `message` varchar(255) NOT NULL DEFAULT '',
-  `reason` varchar(255) NOT NULL DEFAULT '',
-  KEY `guid` (`guid`)
-) ENGINE=InnoDB DEFAULT CHARSET=utf8
+CREATE TABLE `logs_spamdetector` (
+  `id` int(11) NOT NULL AUTO_INCREMENT,
+  `message` varchar(500) NOT NULL DEFAULT '',
+  `data` varchar(500) NOT NULL DEFAULT '',
+  PRIMARY KEY (`id`)
+) ENGINE=InnoDB AUTO_INCREMENT=1 DEFAULT CHARSET=utf8;
 
 /*Table structure for table `logs_trade` */
 
@@ -132,21 +130,6 @@ CREATE TABLE `logs_trashcharacters` (
   `cluster` tinyint(3) unsigned NOT NULL DEFAULT '0',
   PRIMARY KEY (`guid`)
 ) ENGINE=MyISAM DEFAULT CHARSET=utf8;
-
-/*Table structure for table `smartlog_creature` */
-
-DROP TABLE IF EXISTS `smartlog_creature`;
-
-CREATE TABLE `smartlog_creature` (
-  `time` TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
-  `type` ENUM('Death','LongCombat','ScriptInfo','') NOT NULL DEFAULT '',
-  `entry` INT(11) NOT NULL DEFAULT '0',
-  `guid` INT(11) NOT NULL DEFAULT '0',
-  `specifier` VARCHAR(255) NOT NULL DEFAULT '',
-  `combatTime` INT(11) NOT NULL DEFAULT '0',  
-  `content` VARCHAR(255) NOT NULL DEFAULT '',
-  KEY `entry` (`entry`)
-) ENGINE=INNODB DEFAULT CHARSET=utf8;
 
 /*Table structure for table `migrations` */
 

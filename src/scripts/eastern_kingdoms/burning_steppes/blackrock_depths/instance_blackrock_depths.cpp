@@ -24,12 +24,12 @@ EndScriptData */
 #include "scriptPCH.h"
 #include "blackrock_depths.h"
 
-struct instance_blackrock_depths : ScriptedInstance
+struct instance_blackrock_depths : public ScriptedInstance
 {
-    explicit instance_blackrock_depths(Map* pMap) : ScriptedInstance(pMap)
+    instance_blackrock_depths(Map* pMap) : ScriptedInstance(pMap)
     {
-        instance_blackrock_depths::Initialize();
-    }
+        Initialize();
+    };
 
     uint32 m_auiEncounter[MAX_ENCOUNTER];
     std::string strInstData;
@@ -117,7 +117,7 @@ struct instance_blackrock_depths : ScriptedInstance
         pCreature->RemoveFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_PASSIVE);
     }
 
-    void Initialize() override
+    void Initialize()
     {
         memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
 
@@ -179,26 +179,6 @@ struct instance_blackrock_depths : ScriptedInstance
         m_uiPatrolTimer = 0;
 
         m_bBarHostile = false;
-
-        SetOpenedDoor(GO_JAIL_DOOR_DUGHAL, false);
-        SetOpenedDoor(GO_JAIL_DOOR_TOBIAS, false);
-        SetOpenedDoor(GO_JAIL_DOOR_JAZ, false);
-        SetOpenedDoor(GO_JAIL_DOOR_CREST, false);
-        SetOpenedDoor(GO_JAIL_DOOR_SHILL, false);
-        SetOpenedDoor(GO_JAIL_DOOR_SUPPLY, false);
-    }
-
-    void SetOpenedDoor(uint64 m_uiGoEntry, bool opened)
-    {
-        switch (m_uiGoEntry)
-        {
-        case GO_JAIL_DOOR_DUGHAL: m_bDoorDughalOpened = opened; break;
-        case GO_JAIL_DOOR_TOBIAS: m_bDoorTobiasOpened = opened; break;
-        case GO_JAIL_DOOR_CREST:  m_bDoorCrestOpened = opened; break;
-        case GO_JAIL_DOOR_JAZ:    m_bDoorJazOpened = opened; break;
-        case GO_JAIL_DOOR_SHILL:  m_bDoorShillOpened = opened; break;
-        case GO_JAIL_DOOR_SUPPLY: m_bDoorSupplyOpened = opened; break;
-        }
     }
 
     void OnCreatureCreate(Creature* pCreature)

@@ -71,8 +71,8 @@ class MANGOS_DLL_SPEC CreatureAI
 
         virtual uint32 GetData(uint32 /*type*/) { return 0; }
 
-        virtual void InformGuid(const ObjectGuid /*guid*/, uint32 /*type*/=0) {}
-        virtual void DoAction(const uint32 /*type*/=0) {}
+        virtual void InformGuid(const ObjectGuid guid, uint32 type=0) {}
+        virtual void DoAction(const uint32 type=0) {}
         virtual void DoAction(Unit* /*pUnit*/, uint32 /*type*/) {}
 
         ///== Information about AI ========================
@@ -148,8 +148,8 @@ class MANGOS_DLL_SPEC CreatureAI
         // Called at text emote receive from player
         virtual void ReceiveEmote(Player* /*pPlayer*/, uint32 /*text_emote*/) {}
 
-        virtual void OwnerAttackedBy(Unit* /*attacker*/) {}
-        virtual void OwnerAttacked(Unit* /*target*/) {}
+        virtual void OwnerAttackedBy(Unit* attacker) {}
+        virtual void OwnerAttacked(Unit* target) {}
 
         ///== Triggered Actions Requested ==================
 
@@ -203,7 +203,7 @@ class MANGOS_DLL_SPEC CreatureAI
         ///== Helper functions =============================
         bool DoMeleeAttackIfReady();
         CanCastResult DoCastSpellIfCan(Unit* pTarget, uint32 uiSpell, uint32 uiCastFlags = 0, ObjectGuid uiOriginalCasterGUID = ObjectGuid());
-        void ClearTargetIcon();
+
         ///== Fields =======================================
 
         // Pointer to controlled by AI creature
@@ -215,19 +215,19 @@ class MANGOS_DLL_SPEC CreatureAI
         uint32 m_uLastAlertTime;
 };
 
-struct SelectableAI : FactoryHolder<CreatureAI>, Permissible<Creature>
+struct SelectableAI : public FactoryHolder<CreatureAI>, public Permissible<Creature>
 {
-    explicit SelectableAI(const char *id) : FactoryHolder<CreatureAI>(id) {}
+    SelectableAI(const char *id) : FactoryHolder<CreatureAI>(id) {}
 };
 
 template<class REAL_AI>
-struct CreatureAIFactory : SelectableAI
+struct CreatureAIFactory : public SelectableAI
 {
-    explicit CreatureAIFactory(const char *name) : SelectableAI(name) {}
+    CreatureAIFactory(const char *name) : SelectableAI(name) {}
 
-    CreatureAI* Create(void *) const override;
+    CreatureAI* Create(void *) const;
 
-    int Permit(const Creature *c) const override { return REAL_AI::Permissible(c); }
+    int Permit(const Creature *c) const { return REAL_AI::Permissible(c); }
 };
 
 enum Permitions

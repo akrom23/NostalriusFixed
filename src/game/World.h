@@ -83,9 +83,8 @@ enum WorldTimers
     WUPDATE_UPTIME      = 2,
     WUPDATE_CORPSES     = 3,
     WUPDATE_EVENTS      = 4,
-    WUPDATE_SAVE_VAR    = 5,
-    WUPDATE_GROUPS      = 6,
-    WUPDATE_COUNT       = 7
+    WUPDATE_SAVE_VAR    = 5, // Nostalrius
+    WUPDATE_COUNT       = 6
 };
 
 /// Configuration elements
@@ -234,7 +233,6 @@ enum eConfigUInt32Values
     CONFIG_UINT32_BATTLEGROUND_PREMATURE_FINISH_TIMER,
     CONFIG_UINT32_BATTLEGROUND_PREMADE_GROUP_WAIT_FOR_MATCH,
     CONFIG_UINT32_BATTLEGROUND_QUEUE_ANNOUNCER_JOIN,
-    CONFIG_UINT32_GROUP_OFFLINE_LEADER_DELAY,
     CONFIG_UINT32_GUILD_EVENT_LOG_COUNT,
     CONFIG_UINT32_TIMERBAR_FATIGUE_GMLEVEL,
     CONFIG_UINT32_TIMERBAR_FATIGUE_MAX,
@@ -249,8 +247,7 @@ enum eConfigUInt32Values
     CONFIG_UINT32_CHARDELETE_MIN_LEVEL,
     CONFIG_UINT32_GUID_RESERVE_SIZE_CREATURE,
     CONFIG_UINT32_GUID_RESERVE_SIZE_GAMEOBJECT,
-    CONFIG_UINT32_LONGCOMBAT,
-    CONFIG_UINT32_VALUE_COUNT
+    CONFIG_UINT32_VALUE_COUNT,
 };
 
 enum
@@ -370,9 +367,6 @@ enum eConfigBoolValues
     CONFIG_BOOL_LOGSDB_CHARACTERS,
     CONFIG_BOOL_LOGSDB_TRANSACTIONS,
     CONFIG_BOOL_LOGSDB_BATTLEGROUNDS,
-    CONFIG_BOOL_SMARTLOG_DEATH,
-    CONFIG_BOOL_SMARTLOG_LONGCOMBAT,
-    CONFIG_BOOL_SMARTLOG_SCRIPTINFO,
     CONFIG_BOOL_TERRAIN_PRELOAD_CONTINENTS,
     CONFIG_BOOL_TERRAIN_PRELOAD_INSTANCES,
     CONFIG_BOOL_CLEANUP_TERRAIN,
@@ -681,7 +675,6 @@ class World
         void KickAll();
         void KickAllLess(AccountTypes sec);
         void WarnAccount(uint32 accountId, std::string from, std::string reason, const char* type = "WARNING");
-        void BanAccount(uint32 accountId, uint32 duration, std::string reason, std::string author);
         BanReturn BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_secs, std::string reason, std::string author);
         bool RemoveBanAccount(BanMode mode, std::string nameOrIP);
 
@@ -730,7 +723,6 @@ class World
          */
         void LogMoneyTrade(ObjectGuid sender, ObjectGuid receiver, uint32 amount, const char* type, uint32 dataInt);
         void LogCharacter(Player* character, const char* action);
-        void LogCharacter(WorldSession* sess, uint32 lowGuid, std::string const& charName, const char* action);
         void LogChat(WorldSession* sess, const char* type, std::string const& msg, PlayerPointer target = NULL, uint32 chanId = 0, const char* chanStr = NULL);
         void LogTransaction(PlayerTransactionData const& data);
         void Shutdown();

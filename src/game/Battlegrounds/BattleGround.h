@@ -275,8 +275,6 @@ class BattleGround
         virtual void StartingEventCloseDoors()   {}
         virtual void StartingEventOpenDoors()    {}
         virtual void StartingEventDespawnDoors();
-        void ReturnPlayersToHomeGY();
-
         // Called after event state changed (event add or remove).
         virtual void OnEventStateChanged(uint8 event1, uint8 event2, bool actived) {}
 
@@ -289,7 +287,7 @@ class BattleGround
         BattleGroundBracketId GetBracketId() const { return m_BracketId; }
         // the instanceId check is also used to determine a bg-template
         // that's why the m_map hack is here..
-        uint32 GetInstanceID()              { return m_Map ? GetBgMap()->GetInstanceId() : 0; }
+        uint32 GetInstanceID()              { return m_Map?GetBgMap()->GetInstanceId():0; }
         BattleGroundStatus GetStatus() const { return m_Status; }
         uint32 GetClientInstanceID() const  { return m_ClientInstanceID; }
         uint32 GetStartTime() const         { return m_StartTime; }
@@ -510,6 +508,7 @@ class BattleGround
         // creatures will get added wrong
         // door-events are automaticly added - but _ALL_ other must be in this vector
         std::map<uint8, uint8> m_ActiveEvents;
+
 
     protected:
         //this method is called, when BG cannot spawn its own spirit guide, or something is wrong, It correctly ends BattleGround

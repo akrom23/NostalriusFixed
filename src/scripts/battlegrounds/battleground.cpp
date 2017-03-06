@@ -45,40 +45,45 @@ enum
     SPELL_WAITING_TO_RESURRECT      = 2584                  // players who cancel this aura don't want a resurrection
 };
 
-struct npc_spirit_guideAI : ScriptedAI
+struct npc_spirit_guideAI : public ScriptedAI
 {
-    explicit npc_spirit_guideAI(Creature* pCreature) : ScriptedAI(pCreature)
+    npc_spirit_guideAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         uiTimerRez = 0;
-
-        npc_spirit_guideAI::Reset();
+        Reset();
     }
 
-    void Reset() override
+    void Reset()
     {
     }
 
     uint32 uiTimerRez;
 
-    uint32 GetData(uint32 /*type*/) override
+    // renvoit le temps restant avant la prochaine vague
+    uint32 GetData(uint32 /*type*/)
     {
         return uiTimerRez;
     }
 
-    void UpdateAI(const uint32 uiDiff) override
+    void UpdateAI(const uint32 uiDiff)
     {
         if (uiTimerRez < uiDiff)
         {
             m_creature->InterruptNonMeleeSpells(true);
+            // AoE de rez
             m_creature->CastSpell(m_creature, SPELL_SPIRIT_HEAL, true);
+            // Canalisation
             m_creature->CastSpell(m_creature, SPELL_SPIRIT_HEAL_CHANNEL, false);
             uiTimerRez = 30000;
+            //sLog.outString("Recast canalisation ...");
         }
         else
             uiTimerRez -= uiDiff;
+
+        //sLog.outString("%u ms avant rez.", uiTimerRez);
     }
 
-    void CorpseRemoved(uint32 &) override
+    void CorpseRemoved(uint32 &)
     {
         // TODO: would be better to cast a dummy spell
         Map* pMap = m_creature->GetMap();
@@ -99,15 +104,17 @@ struct npc_spirit_guideAI : ScriptedAI
         }
     }
 
-    void AttackedBy(Unit* /*pWho*/) override
+    // Ne doit pas entrer en combat :
+    void AttackedBy(Unit* pWho)
     {
+        return;
     }
 
-    void AttackStart(Unit* /*pWho*/) override
+    void AttackStart(Unit* pWho)
     {
+        return;
     }
-
-    bool IsVisibleFor(Unit const* pViewer, bool &visible) const override
+    bool IsVisibleFor(Unit const* pViewer, bool &visible) const
     {
         if (m_creature->IsFriendlyTo(pViewer))
             return false;
@@ -115,7 +122,8 @@ struct npc_spirit_guideAI : ScriptedAI
         return true;
     }
 
-    void DamageTaken(Unit* /*pFrom*/, uint32 &damage) override
+    // Ne doit pas prendre de degats
+    void DamageTaken(Unit* pFrom, uint32 &damage)
     {
         damage = 0;
     }
@@ -164,18 +172,21 @@ UPDATE creature_template SET spell1=23033 WHERE entry = 14465;
 UPDATE creature_template SET spell1=23576 WHERE entry = 14751;
 UPDATE creature_template SET spell1=23036 WHERE entry = 14466;
 */
-struct npc_etendardAI : NullCreatureAI
+struct npc_etendardAI : public NullCreatureAI
 {
-    explicit npc_etendardAI(Creature* pCreature) : NullCreatureAI(pCreature)
+    npc_etendardAI(Creature* pCreature) : NullCreatureAI(pCreature)
     {
         m_bSpawned = false;
         m_bAutoRepeatSpell = pCreature->GetCreatureInfo()->spells[0];
+        Reset();
     }
 
     bool m_bSpawned;
     uint32 m_bAutoRepeatSpell;
 
-    void UpdateAI(const uint32 uiDiff) override
+    void Reset() {}
+
+    void UpdateAI(const uint32 uiDiff)
     {
         if (!m_bSpawned)
         {

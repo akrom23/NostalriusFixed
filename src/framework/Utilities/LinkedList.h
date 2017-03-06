@@ -36,17 +36,17 @@ class LinkedListElement
 
     public:
 
-        LinkedListElement() : iNext(nullptr), iPrev(nullptr) { }
+        LinkedListElement() : iNext(NULL), iPrev(NULL) { }
         ~LinkedListElement() { delink(); }
 
-        bool hasNext() const  { return (iNext && iNext->iNext != nullptr); }
-        bool hasPrev() const  { return (iPrev && iPrev->iPrev != nullptr); }
-        bool isInList() const { return (iNext != nullptr && iPrev != nullptr); }
+        bool hasNext() const  { return (iNext->iNext != NULL); }
+        bool hasPrev() const  { return (iPrev->iPrev != NULL); }
+        bool isInList() const { return (iNext != NULL && iPrev != NULL); }
 
-        LinkedListElement      * next()       { return hasNext() ? iNext : nullptr; }
-        LinkedListElement const* next() const { return hasNext() ? iNext : nullptr; }
-        LinkedListElement      * prev()       { return hasPrev() ? iPrev : nullptr; }
-        LinkedListElement const* prev() const { return hasPrev() ? iPrev : nullptr; }
+        LinkedListElement      * next()       { return hasNext() ? iNext : NULL; }
+        LinkedListElement const* next() const { return hasNext() ? iNext : NULL; }
+        LinkedListElement      * prev()       { return hasPrev() ? iPrev : NULL; }
+        LinkedListElement const* prev() const { return hasPrev() ? iPrev : NULL; }
 
         LinkedListElement      * nocheck_next()       { return iNext; }
         LinkedListElement const* nocheck_next() const { return iNext; }
@@ -59,8 +59,8 @@ class LinkedListElement
             {
                 iNext->iPrev = iPrev;
                 iPrev->iNext = iNext;
-                iNext = nullptr;
-                iPrev = nullptr;
+                iNext = NULL;
+                iPrev = NULL;
             }
         }
 
@@ -104,11 +104,11 @@ class LinkedListHead
 
         bool isEmpty() const { return (!iFirst.iNext->isInList()); }
 
-        LinkedListElement      * getFirst()       { return (isEmpty() ? nullptr : iFirst.iNext); }
-        LinkedListElement const* getFirst() const { return (isEmpty() ? nullptr : iFirst.iNext); }
+        LinkedListElement      * getFirst()       { return (isEmpty() ? NULL : iFirst.iNext); }
+        LinkedListElement const* getFirst() const { return (isEmpty() ? NULL : iFirst.iNext); }
 
-        LinkedListElement      * getLast()        { return (isEmpty() ? nullptr : iLast.iPrev); }
-        LinkedListElement const* getLast() const  { return (isEmpty() ? nullptr : iLast.iPrev); }
+        LinkedListElement      * getLast()        { return (isEmpty() ? NULL : iLast.iPrev); }
+        LinkedListElement const* getLast() const  { return (isEmpty() ? NULL : iLast.iPrev); }
 
         void insertFirst(LinkedListElement* pElem)
         {
@@ -158,7 +158,7 @@ class LinkedListHead
 
 
                 Iterator()
-                    : _Ptr(nullptr)
+                    : _Ptr(NULL)
                 {                                           // construct with null node pointer
                 }
 

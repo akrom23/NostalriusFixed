@@ -312,7 +312,7 @@ struct Loot
 
     void leaveOnlyQuestItems()
     {
-	   clear(false);
+	clear(false);
     }
 
     bool empty() const { return items.empty() && gold == 0; }
@@ -338,8 +338,7 @@ struct Loot
     // TrinityCore
     bool hasItemFor(Player* player) const;
     bool hasOverThresholdItem() const;
-    bool IsAllowedLooter(ObjectGuid guid, bool doPersonalCheck = true) const;
-    bool IsOriginalLooter(ObjectGuid guid) { return IsAllowedLooter(guid, false); }
+    bool IsAllowedLooter(ObjectGuid guid) const;
 
     void FillNotNormalLootFor(Player* player);
 

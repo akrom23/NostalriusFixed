@@ -6,7 +6,6 @@
 #define HARDCODED_EVENTS_H
 
 #include "GameEventMgr.h"
-#include "ObjectMgr.h"
 
 /*
  * Elemental Invasion
@@ -168,30 +167,6 @@ struct DarkmoonFaire : WorldEvent
 private:
     uint32 FindMonthFirstMonday(bool &foireAlly, struct tm *timeinfo);
     DarkmoonState GetDarkmoonState();
-};
-
-/*
- * Lunar Festival Firework
- */
-
-enum
-{
-    EVENT_FIREWORKS         = 6,
-    EVENT_LUNAR_FIREWORKS   = 76,
-
-    FIREWORKS_DURATION      = 5
-};
-
-struct LunarFestivalFirework : WorldEvent
-{
-    LunarFestivalFirework() : WorldEvent(EVENT_FIREWORKS) {}
-
-    void Update() override;
-    void Enable() override;
-    void Disable() override;
-
-private:
-    bool IsHourBeginning(uint8 minutes = FIREWORKS_DURATION) const;
 };
 
 #endif

@@ -921,9 +921,6 @@ struct npc_deathstalker_vincentAI : public ScriptedAI
 
     void Reset()
     {
-        if (!m_pInstance)
-            return;
-
         if (m_pInstance->GetData(TYPE_INTRO) == DONE && !m_creature->GetByteValue(UNIT_FIELD_BYTES_1, 0))
             m_creature->SetStandState(UNIT_STAND_STATE_DEAD);
     }

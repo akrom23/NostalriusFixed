@@ -33,7 +33,6 @@ extern SQLStorage sPageTextStore;
 extern SQLStorage sItemStorage;
 extern SQLStorage sMapStorage;
 extern SQLStorage sConditionStorage;
-extern SQLStorage sAreaStorage;
 
 extern SQLHashStorage sGOStorage;
 

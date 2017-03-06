@@ -482,7 +482,7 @@ void WorldSession::HandleGroupRaidConvertOpcode(WorldPacket & /*recv_data*/)
         return;
 
     /** error handling **/
-    if (!group->IsLeader(GetPlayer()->GetObjectGuid()) || group->GetMembersCount() < group->GetMembersMinCount())
+    if (!group->IsLeader(GetPlayer()->GetObjectGuid()) || group->GetMembersCount() < 2)
         return;
     /********************/
 
@@ -633,7 +633,17 @@ void WorldSession::BuildPartyMemberStatsPacket(Player* player, WorldPacket* data
     *data << uint32(mask);
 
     if (mask & GROUP_UPDATE_FLAG_STATUS)
-        *data << uint8(GetGroupMemberStatus(player));
+    {
+        if (player)
+        {
+            if (player->IsPvP())
+                *data << uint8(MEMBER_STATUS_ONLINE | MEMBER_STATUS_PVP);
+            else
+                *data << uint8(MEMBER_STATUS_ONLINE);
+        }
+        else
+            *data << uint8(MEMBER_STATUS_OFFLINE);
+    }
 
     if (mask & GROUP_UPDATE_FLAG_CUR_HP)
         *data << uint16(player->GetHealth());

@@ -60,9 +60,9 @@ class SQLStorageBase
         };
 
         template<typename T>
-        SQLSIterator<T> begin() const { return SQLSIterator<T>(m_data, m_recordSize); }
+        SQLSIterator<T> getDataBegin() const { return SQLSIterator<T>(m_data, m_recordSize); }
         template<typename T>
-        SQLSIterator<T> end() const { return SQLSIterator<T>(m_data + m_recordCount * m_recordSize, m_recordSize); }
+        SQLSIterator<T> getDataEnd() const { return SQLSIterator<T>(m_data + m_recordCount * m_recordSize, m_recordSize); }
 
     protected:
         SQLStorageBase();
@@ -148,9 +148,9 @@ class SQLHashStorage : public SQLStorageBase
         template<class T>
         T const* LookupEntry(uint32 id) const
         {
-            RecordMap::const_iterator itr = m_indexMap.find(id);
-            if (itr != m_indexMap.end())
-                return reinterpret_cast<T const*>(itr->second);
+            RecordMap::const_iterator find = m_indexMap.find(id);
+            if (find != m_indexMap.end())
+                return reinterpret_cast<T const*>(find->second);
             return nullptr;
         }
 
@@ -168,7 +168,7 @@ class SQLHashStorage : public SQLStorageBase
         void Free() override;
 
     private:
-        typedef UNORDERED_MAP<uint32 /*recordId*/, char* /*record*/> RecordMap;
+        typedef std::unordered_map<uint32 /*recordId*/, char* /*record*/> RecordMap;
         RecordMap m_indexMap;
 };
 

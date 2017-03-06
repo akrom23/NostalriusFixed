@@ -111,57 +111,6 @@ bool GOHello_go_barov_journal(Player* pPlayer, GameObject* pGo)
     return true;
 }
 
-/*######
-## go_greater_moonlight
-######*/
-
-bool GOHello_go_greater_moonlight(Player* pPlayer, GameObject* pGo) {
-    auto zone = pPlayer->GetZoneId();
-
-    if (zone == 493) // Moonglade
-    {
-        sLog.outError("Zone %d Team %d GO %d", zone, pPlayer->GetTeamId(), pGo->GetGUIDLow());
-        if (pPlayer->GetTeamId() == TEAM_ALLIANCE)
-        {
-            switch (pGo->GetGUIDLow())
-            {
-                case 3998422: // Darnassus
-                    pPlayer->TeleportTo(WorldLocation(1, 10150.45f, 2602.12f, 1330.82f, 5.03f));
-                    break;
-                case 3998424: // Stormwind
-                    pPlayer->TeleportTo(WorldLocation(0, -8748.27f, 1074.27f, 90.52f, 4.17f));
-                    break;
-                case 3998425: // Ironforge
-                    pPlayer->TeleportTo(WorldLocation(0, -4663.39f, -956.23f, 500.37f, 5.73f));
-                    break;
-                default:
-                    return false;
-            }
-        }
-        else
-        {
-            switch(pGo->GetGUID())
-            {
-                case 3998423: // Thunderbluff
-                    pPlayer->TeleportTo(WorldLocation(1, -1031.73f, -230.42f, 160.18f, 3.12f));
-                    break;
-                case 3998426: // Undercity
-                    pPlayer->TeleportTo(WorldLocation(0, 1642.41f, 239.9f, 62.59f, 3.01f));
-                    break;
-                case 3998427: // Orgrimmar
-                    pPlayer->TeleportTo(WorldLocation(1, 1971.18f, -4259.45f, 32.21f, 4.0f));
-                    break;
-                default:
-                    return false;
-            }
-        }
-    
-    } else {
-        pPlayer->TeleportTo(WorldLocation(1, 7577.0f, -2188.9f, 475.3f, 5.03f));
-    }
-
-    return true;
-}
 
 /*######
 ## go_field_repair_bot_74A
@@ -367,11 +316,6 @@ bool GOSelect_go_Hive_Glyphed_Crystal(Player* pPlayer, GameObject* pGo, uint32 s
 void AddSC_go_scripts()
 {
     Script *newscript;
-
-    newscript = new Script;
-    newscript->Name = "go_greater_moonlight";
-    newscript->pGOHello = &GOHello_go_greater_moonlight;
-    newscript->RegisterSelf();
 
     newscript = new Script;
     newscript->Name = "go_cat_figurine";

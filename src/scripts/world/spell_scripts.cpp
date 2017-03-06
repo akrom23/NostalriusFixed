@@ -41,6 +41,16 @@ EndContentData */
 
 enum
 {
+    // quest 6124/6129
+    SPELL_APPLY_SALVE                   = 19512,
+    SPELL_SICKY_CRITTER_AURA            = 19502,
+
+    NPC_SICKLY_DEER                     = 12298,
+    NPC_SICKLY_GAZELLE                  = 12296,
+
+    NPC_CURED_DEER                      = 12299,
+    NPC_CURED_GAZELLE                   = 12297,
+
     // target morbent fel
     SPELL_SACRED_CLEANSING              = 8913,
     NPC_MORBENT                         = 1200,
@@ -75,6 +85,32 @@ bool EffectDummyCreature_spell_dummy_npc(Unit* pCaster, uint32 uiSpellId, SpellE
                     return true;
 
                 pCreatureTarget->UpdateEntry(NPC_WEAKENED_MORBENT);
+                return true;
+            }
+            return true;
+        }
+        case SPELL_APPLY_SALVE:
+        {
+            if (uiEffIndex == EFFECT_INDEX_0)
+            {
+                Player* playerCaster = pCaster->ToPlayer();
+                if (!playerCaster)
+                    return true;
+
+                if (pCreatureTarget->GetEntry() == NPC_SICKLY_DEER && playerCaster->GetTeam() == ALLIANCE)
+                {
+                    pCaster->ToPlayer()->RewardPlayerAndGroupAtCast(pCreatureTarget, uiSpellId);
+                    pCreatureTarget->UpdateEntry(NPC_CURED_DEER);
+                    pCreatureTarget->RemoveAurasDueToSpell(SPELL_SICKY_CRITTER_AURA);
+                }
+
+                if (pCreatureTarget->GetEntry() == NPC_SICKLY_GAZELLE && playerCaster->GetTeam() == HORDE)
+                {
+                    pCaster->ToPlayer()->RewardPlayerAndGroupAtCast(pCreatureTarget, uiSpellId);
+                    pCreatureTarget->UpdateEntry(NPC_CURED_GAZELLE);
+                    pCreatureTarget->RemoveAurasDueToSpell(SPELL_SICKY_CRITTER_AURA);
+                }
+
                 return true;
             }
             return true;

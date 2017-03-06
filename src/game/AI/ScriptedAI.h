@@ -9,11 +9,14 @@
 #include "Creature.h"
 #include "ScriptMgr.h"
 
-#define CAST_PLR(a)     (dynamic_cast<Player*>(a))
-#define CAST_CRE(a)     (dynamic_cast<Creature*>(a))
-#define CAST_SUM(a)     (dynamic_cast<TempSummon*>(a))
-#define CAST_PET(a)     (dynamic_cast<Pet*>(a))
-#define CAST_AI(a,b)    (dynamic_cast<a*>(b))
+// Cast d'objets.
+#define SCRIPT_CAST_TYPE dynamic_cast
+
+#define CAST_PLR(a)     (SCRIPT_CAST_TYPE<Player*>(a))
+#define CAST_CRE(a)     (SCRIPT_CAST_TYPE<Creature*>(a))
+#define CAST_SUM(a)     (SCRIPT_CAST_TYPE<TempSummon*>(a))
+#define CAST_PET(a)     (SCRIPT_CAST_TYPE<Pet*>(a))
+#define CAST_AI(a,b)    (SCRIPT_CAST_TYPE<a*>(b))
 
 enum SCEquip
 {
@@ -21,7 +24,7 @@ enum SCEquip
     EQUIP_UNEQUIP   = 0
 };
 
-struct MANGOS_DLL_DECL ScriptedAI : CreatureAI
+struct MANGOS_DLL_DECL ScriptedAI : public CreatureAI
 {
     explicit ScriptedAI(Creature* pCreature);
     ~ScriptedAI() {}
@@ -31,49 +34,49 @@ struct MANGOS_DLL_DECL ScriptedAI : CreatureAI
     //*************
 
     //Called if IsVisible(Unit *who) is true at each *who move
-    void MoveInLineOfSight(Unit*) override;
+    void MoveInLineOfSight(Unit*);
 
     //Called at each attack of m_creature by any victim
-    void AttackStart(Unit*) override;
+    void AttackStart(Unit*);
 
     // Called for reaction at enter to combat if not in combat yet (enemy can be NULL)
-    void EnterCombat(Unit*) override;
+    void EnterCombat(Unit*);
 
     //Called at stoping attack by any attacker
-    void EnterEvadeMode() override;
+    void EnterEvadeMode();
 
     //Called at any heal cast/item used (call non implemented in mangos)
-    void HealBy(Unit* /*pHealer*/, uint32 /*uiAmountHealed*/) override {}
+    void HealBy(Unit* pHealer, uint32 uiAmountHealed) {}
 
     // Called at any Damage to any victim (before damage apply)
-    void DamageDeal(Unit* /*pDoneTo*/, uint32& /*uiDamage*/) override {}
+    void DamageDeal(Unit* pDoneTo, uint32& uiDamage) {}
 
     // Called at any Damage from any attacker (before damage apply)
-    void DamageTaken(Unit* /*pDoneBy*/, uint32& /*uiDamage*/) override {}
+    void DamageTaken(Unit* pDoneBy, uint32& uiDamage) {}
 
     //Called at World update tick
-    void UpdateAI(const uint32) override;
+    void UpdateAI(const uint32);
 
     //Called at creature death
-    void JustDied(Unit*) override {}
+    void JustDied(Unit*) {}
 
     //Called at creature killing another unit
-    void KilledUnit(Unit*) override {}
+    void KilledUnit(Unit*) {}
 
     // Called when the creature summon successfully other creature
-    void JustSummoned(Creature*) override {}
+    void JustSummoned(Creature*) {}
 
     // Called when a summoned creature is despawned
-    void SummonedCreatureDespawn(Creature*) override {}
+    void SummonedCreatureDespawn(Creature*) {}
 
     // Called when hit by a spell
-    void SpellHit(Unit*, const SpellEntry*) override {}
+    void SpellHit(Unit*, const SpellEntry*) {}
 
     // Called when creature is spawned or respawned (for reseting variables)
-    void JustRespawned() override;
+    void JustRespawned();
 
     //Called at waypoint reached or PointMovement end
-    void MovementInform(uint32, uint32) override {}
+    void MovementInform(uint32, uint32) {}
 
     //*************
     // Variables
@@ -85,9 +88,6 @@ struct MANGOS_DLL_DECL ScriptedAI : CreatureAI
 
     //Called at creature reset either by death or evade
     virtual void Reset() = 0;
-
-    // Called at creature death only
-    virtual void ResetCreature() {}
 
     //Called at creature EnterCombat
     virtual void Aggro(Unit*);
@@ -111,7 +111,7 @@ struct MANGOS_DLL_DECL ScriptedAI : CreatureAI
     //Plays a sound to all nearby players
     void DoPlaySoundToSet(WorldObject* pSource, uint32 uiSoundId);
 
-    void SendMonsterMoveWithSpeed(float x, float y, float z, uint32 MovementFlags, uint32 transitTime = 0, Player* player = nullptr);
+    void SendMonsterMoveWithSpeed(float x, float y, float z, uint32 MovementFlags, uint32 transitTime = 0, Player* player = NULL);
     //Drops all threat to 0%. Does not remove players from the threat list
     void DoResetThreat();
 
@@ -149,7 +149,6 @@ struct MANGOS_DLL_DECL ScriptedAI : CreatureAI
     bool IsCombatMovement() const { return m_bCombatMovement; }
 
     bool EnterEvadeIfOutOfCombatArea(const uint32 uiDiff);
-    void EnterEvadeIfOutOfHomeArea();
 
     void DoGoHome();
 
@@ -159,21 +158,17 @@ struct MANGOS_DLL_DECL ScriptedAI : CreatureAI
     void DoTeleportTo(const float fPos[4]);
     void DoTeleportAll(float fX, float fY, float fZ, float fO);
     Creature* me;
-
     private:
         bool   m_bCombatMovement;
         uint32 m_uiEvadeCheckCooldown;
-
-        bool m_bEvadeOutOfHomeArea;
-        uint32 m_uiHomeArea;
 };
 
-struct MANGOS_DLL_DECL Scripted_NoMovementAI : ScriptedAI
+struct MANGOS_DLL_DECL Scripted_NoMovementAI : public ScriptedAI
 {
-    explicit Scripted_NoMovementAI(Creature* pCreature) : ScriptedAI(pCreature) {}
+    Scripted_NoMovementAI(Creature* pCreature) : ScriptedAI(pCreature) {}
 
     //Called at each attack of m_creature by any victim
-    void AttackStart(Unit*) override;
+    void AttackStart(Unit*);
 };
 
 #endif

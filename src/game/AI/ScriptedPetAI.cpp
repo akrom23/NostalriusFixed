@@ -30,17 +30,17 @@ void ScriptedPetAI::MoveInLineOfSight(Unit* pWho)
 	if (!m_creature->GetCharmInfo() || !m_creature->GetCharmInfo()->HasReactState(REACT_AGGRESSIVE))
 		return;
 
-    if (!pWho || !m_creature->IsValidAttackTarget(pWho) || !pWho->isVisibleForOrDetect(m_creature, m_creature, true) ||
-        !m_creature->CanInitiateAttack() || !pWho->isInAccessablePlaceFor(m_creature) || !m_creature->canAttack(pWho, true))
-        return;
-
-	if (!m_creature->CanFly() && m_creature->GetDistanceZ(pWho) > CREATURE_Z_ATTACK_RANGE)
-		return;
-
-	if (m_creature->IsWithinDistInMap(pWho, m_creature->GetAttackDistance(pWho)) && m_creature->IsWithinLOSInMap(pWho))
+	if (m_creature->CanInitiateAttack() && pWho->isTargetableForAttack() &&
+		m_creature->IsHostileTo(pWho) && pWho->isInAccessablePlaceFor(m_creature))
 	{
-		//pWho->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
-		AttackStart(pWho);
+		if (!m_creature->CanFly() && m_creature->GetDistanceZ(pWho) > CREATURE_Z_ATTACK_RANGE)
+			return;
+
+		if (m_creature->IsWithinDistInMap(pWho, m_creature->GetAttackDistance(pWho)) && m_creature->IsWithinLOSInMap(pWho))
+		{
+			pWho->RemoveSpellsCausingAura(SPELL_AURA_MOD_STEALTH);
+			AttackStart(pWho);
+		}
 	}
 }
 
@@ -83,12 +83,6 @@ void ScriptedPetAI::ResetPetCombat()
 void ScriptedPetAI::UpdatePetAI(const uint32 uiDiff)
 {
 	DoMeleeAttackIfReady();
-}
-
-void ScriptedPetAI::JustRespawned()
-{
-    Reset();
-    ResetCreature();
 }
 
 void ScriptedPetAI::UpdateAI(const uint32 uiDiff)

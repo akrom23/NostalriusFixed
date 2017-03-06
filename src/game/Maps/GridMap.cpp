@@ -29,7 +29,6 @@
 #include "World.h"
 #include "Policies/SingletonImp.h"
 #include "Util.h"
-#include "SQLStorages.h"
 
 char const* MAP_MAGIC         = "MAPS";
 char const* MAP_VERSION_MAGIC = "z1.3";
@@ -528,14 +527,14 @@ GridMapLiquidStatus GridMap::getLiquidStatus(float x, float y, float z, uint8 Re
             {
                 // only basic liquid stored in maps actualy so in some case we need to override type depend on area
                 // actualy only Naxxramas raid be overrided here
-                if (const auto *areaEntry = AreaEntry::GetById(getArea(x, y)))
+                if (AreaTableEntry const* area = sAreaStore.LookupEntry(getArea(x, y)))
                 {
-                    uint32 overrideLiquid = areaEntry->LiquidTypeId;
-                    if (!overrideLiquid && !areaEntry->IsZone())
+                    uint32 overrideLiquid = area->LiquidTypeOverride;
+                    if (!overrideLiquid && area->zone)
                     {
-                        areaEntry = AreaEntry::GetById(areaEntry->ZoneId);
-                        if (areaEntry)
-                            overrideLiquid = areaEntry->LiquidTypeId;
+                        area = GetAreaEntryByAreaID(area->zone);
+                        if (area)
+                            overrideLiquid = area->LiquidTypeOverride;
                     }
 
                     if (LiquidTypeEntry const* liq = sLiquidTypeStore.LookupEntry(overrideLiquid))
@@ -929,8 +928,8 @@ uint16 TerrainInfo::GetAreaFlag(float x, float y, float z, bool* isOutdoors) con
 {
     uint32 mogpFlags;
     int32 adtId, rootId, groupId;
-    WMOAreaTableEntry const* wmoEntry = nullptr;
-    AreaEntry const* atEntry = nullptr;
+    WMOAreaTableEntry const* wmoEntry = NULL;
+    AreaTableEntry const* atEntry = NULL;
     bool haveAreaInfo = false;
 
     if (GetAreaInfo(x, y, z, mogpFlags, adtId, rootId, groupId))
@@ -938,19 +937,19 @@ uint16 TerrainInfo::GetAreaFlag(float x, float y, float z, bool* isOutdoors) con
         haveAreaInfo = true;
         wmoEntry = GetWMOAreaTableEntryByTripple(rootId, adtId, groupId);
         if (wmoEntry)
-            atEntry = AreaEntry::GetById(wmoEntry->areaId);
+            atEntry = GetAreaEntryByAreaID(wmoEntry->areaId);
     }
 
     uint16 areaflag;
     if (atEntry)
-        areaflag = atEntry->ExploreFlag;
+        areaflag = atEntry->exploreFlag;
     else
     {
         if (GridMap* gmap = const_cast<TerrainInfo*>(this)->GetGrid(x, y))
             areaflag = gmap->getArea(x, y);
         // this used while not all *.map files generated (instances)
         else
-            areaflag = AreaEntry::GetFlagByMapId(GetMapId());
+            areaflag = GetAreaFlagByMapId(GetMapId());
     }
 
     if (isOutdoors)
@@ -1252,28 +1251,28 @@ void TerrainManager::UnloadAll()
 
 uint32 TerrainManager::GetAreaIdByAreaFlag(uint16 areaflag, uint32 map_id)
 {
-    const auto *entry = AreaEntry::GetByAreaFlagAndMap(areaflag, map_id);
+    AreaTableEntry const* entry = GetAreaEntryByAreaFlagAndMap(areaflag, map_id);
 
     if (entry)
-        return entry->Id;
+        return entry->ID;
     else
         return 0;
 }
 
 uint32 TerrainManager::GetZoneIdByAreaFlag(uint16 areaflag, uint32 map_id)
 {
-    const auto *entry = AreaEntry::GetByAreaFlagAndMap(areaflag, map_id);
+    AreaTableEntry const* entry = GetAreaEntryByAreaFlagAndMap(areaflag, map_id);
 
     if (entry)
-        return !entry->IsZone() ? entry->ZoneId : entry->Id;
+        return (entry->zone != 0) ? entry->zone : entry->ID;
     else
         return 0;
 }
 
 void TerrainManager::GetZoneAndAreaIdByAreaFlag(uint32& zoneid, uint32& areaid, uint16 areaflag, uint32 map_id)
 {
-    const auto *entry = AreaEntry::GetByAreaFlagAndMap(areaflag, map_id);
+    AreaTableEntry const* entry = GetAreaEntryByAreaFlagAndMap(areaflag, map_id);
 
-    areaid = entry ? entry->Id : 0;
-    zoneid = entry ? (!entry->IsZone() ? entry->ZoneId : entry->Id) : 0;
+    areaid = entry ? entry->ID : 0;
+    zoneid = entry ? ((entry->zone != 0) ? entry->zone : entry->ID) : 0;
 }

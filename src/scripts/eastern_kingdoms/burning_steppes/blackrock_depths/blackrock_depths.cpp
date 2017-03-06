@@ -28,12 +28,17 @@ npc_grimstone
 mob_phalanx
 npc_kharan_mighthammer
 npc_lokhtos_darkbargainer
+EndContentData */
+
+/* Nostalrius : Chakor
 go_dark_keeper_portrait
 go_thunderbrew_laguer_keg
 go_relic_coffer_door
 npc_watchman_doomgrip
 npc_ribbly_fermevanne
 npc_golem_lord_argelmach
+*/
+/* Nostalrius : Ivina
 npc_GorShak
 */
 
@@ -2074,12 +2079,12 @@ enum
 #define GOSSIP_DUGHAL           "You\'re free, Dughal! Get out of here!"
 #define GOSSIP_TOBIAS           "Get out of here, Tobias, you\'re free!"
 
-struct npc_dughal_stormwingAI : npc_escortAI
+struct npc_dughal_stormwingAI : public npc_escortAI
 {
-    explicit npc_dughal_stormwingAI(Creature* m_creature) : npc_escortAI(m_creature)
+    npc_dughal_stormwingAI(Creature* m_creature) : npc_escortAI(m_creature)
     {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
-        npc_dughal_stormwingAI::Reset();
+        m_pInstance = (ScriptedInstance*)m_creature->GetInstanceData();
+        Reset();
     }
 
     ScriptedInstance* m_pInstance;
@@ -2111,39 +2116,30 @@ struct npc_dughal_stormwingAI : npc_escortAI
         if (!m_pInstance || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) != IN_PROGRESS)
             return;
 
-        if (m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == FAIL || 
-            m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == DONE || 
-            m_pInstance->GetData(TYPE_JAIL_DUGHAL) == DONE)
-        {
-            m_creature->SetVisibility(VISIBILITY_OFF);            
-        }
+        if (m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == FAIL || m_pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == DONE || m_pInstance->GetData(TYPE_JAIL_DUGHAL) == DONE)
+            m_creature->SetVisibility(VISIBILITY_OFF);
         else
              m_creature->SetVisibility(VISIBILITY_ON);
-
         npc_escortAI::UpdateEscortAI(uiDiff);
     }
 };
 
 bool GossipHello_npc_dughal_stormwing(Player* pPlayer, Creature* pCreature)
 {
-    ScriptedInstance * pInstance = static_cast<ScriptedInstance*>(pPlayer->GetInstanceData());
-
+    ScriptedInstance * pInstance = (ScriptedInstance*)pPlayer->GetInstanceData();
     if (pPlayer->GetQuestStatus(QUEST_JAIL_BREAK) == QUEST_STATUS_INCOMPLETE && pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == IN_PROGRESS)
         pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_DUGHAL, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
     pPlayer->SEND_GOSSIP_MENU(2846, pCreature->GetObjectGuid());
-
     return true;
 }
 
-bool GossipSelect_npc_dughal_stormwing(Player* pPlayer, Creature* pCreature, uint32 /*uiSender*/, uint32 uiAction)
+bool GossipSelect_npc_dughal_stormwing(Player* pPlayer, Creature* pCreature, uint32 uiSender, uint32 uiAction)
 {
     if (uiAction == GOSSIP_ACTION_INFO_DEF + 1)
     {
         pPlayer->CLOSE_GOSSIP_MENU();
         pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-        if (auto pEscortAI = dynamic_cast<npc_dughal_stormwingAI*>(pCreature->AI()))
+        if (npc_dughal_stormwingAI* pEscortAI = dynamic_cast<npc_dughal_stormwingAI*>(pCreature->AI()))
             pEscortAI->Start(true, pPlayer->GetObjectGuid());
     }
     return true;
@@ -2155,11 +2151,11 @@ CreatureAI* GetAI_npc_dughal_stormwing(Creature* pCreature)
 }
 
 // npc_marshal_reginald_windsor
-struct npc_marshal_reginald_windsorAI : npc_escortAI
+struct npc_marshal_reginald_windsorAI : public npc_escortAI
 {
-    explicit npc_marshal_reginald_windsorAI(Creature* m_creature) : npc_escortAI(m_creature)
+    npc_marshal_reginald_windsorAI(Creature* m_creature) : npc_escortAI(m_creature)
     {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
+        m_pInstance = (ScriptedInstance*)m_creature->GetInstanceData();
         npc_marshal_reginald_windsorAI::Reset();        
     }
 
@@ -2240,18 +2236,14 @@ struct npc_marshal_reginald_windsorAI : npc_escortAI
                 DoScriptText(SAY_REGINALD_WINDSOR_13_3, m_creature);
                 break;
             case 23:
+                if (!m_pInstance->GetData(GO_JAIL_DOOR_TOBIAS))
                 {
-                    if (!m_pInstance->GetData(GO_JAIL_DOOR_TOBIAS))
-                    {
-                        m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
-                        DoScriptText(SAY_REGINALD_WINDSOR_14_1, m_creature);
-                    }
-
-                    if (Creature* pTobias = m_creature->FindNearestCreature(NPC_TOBIAS, 200.0f))
-                        pTobias->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-                    SetEscortPaused(true);                    
+                    m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
+                    DoScriptText(SAY_REGINALD_WINDSOR_14_1, m_creature);
                 }
+                if (Creature* pTobias = m_creature->FindNearestCreature(NPC_TOBIAS, 200.0f))
+                    pTobias->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
+                SetEscortPaused(true);
                 break;
             case 24:
                 DoScriptText(SAY_REGINALD_WINDSOR_14_2, m_creature, pPlayer);
@@ -2288,17 +2280,15 @@ struct npc_marshal_reginald_windsorAI : npc_escortAI
             case NPC_SHILL: 
                 DoScriptText(SAY_REGINALD_WINDSOR_7_4, m_creature); break;
         }
-
-        npc_escortAI::EnterCombat(pWho);
     }
 
-    void EnterEvadeMode() override
+    void EnterEvadeMode()
     {
         m_creature->RemoveAurasDueToSpell(SPELL_WINDSORS_FRENZY);
         npc_escortAI::EnterEvadeMode();
     }
 
-    void JustDied(Unit* /*pKiller*/) override
+    void JustDied(Unit* slayer) override
     {
         m_pInstance->SetData(TYPE_QUEST_JAIL_BREAK, FAIL);
     }
@@ -2381,11 +2371,11 @@ CreatureAI* GetAI_npc_marshal_reginald_windsor(Creature* pCreature)
 }
 
 // npc_marshal_windsor
-struct npc_marshal_windsorAI : npc_escortAI
+struct npc_marshal_windsorAI : public npc_escortAI
 {
-    explicit npc_marshal_windsorAI(Creature* m_creature) : npc_escortAI(m_creature)
+    npc_marshal_windsorAI(Creature* m_creature) : npc_escortAI(m_creature)
     {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
+        m_pInstance = (ScriptedInstance*)m_creature->GetInstanceData();
         npc_marshal_windsorAI::Reset();
     }
 
@@ -2418,10 +2408,8 @@ struct npc_marshal_windsorAI : npc_escortAI
                         DoScriptText(SAY_WINDSOR_4_1, m_creature, pTemp);
                     m_creature->HandleEmoteCommand(EMOTE_STATE_POINT);
                 }
-
                 if (Creature* pDughal = m_creature->FindNearestCreature(NPC_DUGHAL, 200.0f))
                     pDughal->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
                 SetEscortPaused(true);
                 break;
             case 12:
@@ -2451,12 +2439,9 @@ struct npc_marshal_windsorAI : npc_escortAI
                 m_creature->SetVisibility(VISIBILITY_OFF);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NOT_SELECTABLE);
                 m_creature->SetFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_NON_ATTACKABLE);
-                if (Creature* pTemp = m_creature->SummonCreature(NPC_REGINALD_WINDSOR, 
-                    m_creature->GetPositionX(), 
-                    m_creature->GetPositionY(), 
-                    m_creature->GetPositionZ(), 3.600f, TEMPSUMMON_DEAD_DESPAWN, 0))
+                if (Creature* pTemp = m_creature->SummonCreature(NPC_REGINALD_WINDSOR, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ(), 3.600f, TEMPSUMMON_DEAD_DESPAWN, 0))
                 {
-                    if (auto pEscortAI = dynamic_cast<npc_marshal_reginald_windsorAI*>(pTemp->AI()))
+                    if (npc_marshal_reginald_windsorAI* pEscortAI = dynamic_cast<npc_marshal_reginald_windsorAI*>(pTemp->AI()))
                     {
                         pTemp->setFaction(11);
                         m_pInstance->SetData(TYPE_JAIL_SUPPLY_ROOM, DONE);
@@ -2467,7 +2452,7 @@ struct npc_marshal_windsorAI : npc_escortAI
         }
     }
 
-    void Aggro(Unit* /*pWho*/) override
+    void Aggro(Unit* pWho) override
     {
         Player* pPlayer = GetPlayerForEscort();
         if (!pPlayer)
@@ -2481,7 +2466,7 @@ struct npc_marshal_windsorAI : npc_escortAI
         }
     }
 
-    void JustDied(Unit* /*pKiller*/) override
+    void JustDied(Unit* pKiller) override
     {
         m_pInstance->SetData(TYPE_QUEST_JAIL_BREAK, FAIL);
     }
@@ -2514,19 +2499,17 @@ bool QuestAccept_npc_marshal_windsor(Player* pPlayer, Creature* pCreature, const
 {
     if (pQuest->GetQuestId() == QUEST_JAIL_BREAK)
     {
-        if (auto pInstance = static_cast<ScriptedInstance*>(pPlayer->GetInstanceData()))
+        if (ScriptedInstance* pInstance = (ScriptedInstance*)pPlayer->GetInstanceData())
         {
             if (pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == NOT_STARTED)
             {
                 pInstance->SetData(TYPE_QUEST_JAIL_BREAK, IN_PROGRESS);
                 pCreature->setFaction(11);
-
-                if (auto pEscortAI = dynamic_cast<npc_marshal_windsorAI*>(pCreature->AI()))
+                if (npc_marshal_windsorAI* pEscortAI = dynamic_cast<npc_marshal_windsorAI*>(pCreature->AI()))
                     pEscortAI->Start(false, pPlayer->GetObjectGuid(), pQuest);
             }
         }
     }
-
     return true;
 }
 
@@ -2536,12 +2519,12 @@ CreatureAI* GetAI_npc_marshal_windsor(Creature* pCreature)
 }
 
 // npc_tobias_seecher
-struct npc_tobias_seecherAI : npc_escortAI
+struct npc_tobias_seecherAI : public npc_escortAI
 {
-    explicit npc_tobias_seecherAI(Creature* m_creature) : npc_escortAI(m_creature)
+    npc_tobias_seecherAI(Creature* m_creature) : npc_escortAI(m_creature)
     {
-        m_pInstance = static_cast<ScriptedInstance*>(m_creature->GetInstanceData());
-        npc_tobias_seecherAI::Reset();
+        m_pInstance = (ScriptedInstance*)m_creature->GetInstanceData();
+        Reset();
     }
 
     ScriptedInstance* m_pInstance;
@@ -2579,34 +2562,28 @@ struct npc_tobias_seecherAI : npc_escortAI
             m_creature->SetVisibility(VISIBILITY_OFF);
         else
              m_creature->SetVisibility(VISIBILITY_ON);
-
         npc_escortAI::UpdateEscortAI(uiDiff);
     }
 };
 
-bool GossipSelect_npc_tobias_seecher(Player* pPlayer, Creature* pCreature, uint32 /*uiSender*/, uint32 uiAction)
+bool GossipSelect_npc_tobias_seecher(Player* pPlayer, Creature* pCreature, uint32 uiSender, uint32 uiAction)
 {
     if (uiAction == GOSSIP_ACTION_INFO_DEF + 1)
     {
         pPlayer->CLOSE_GOSSIP_MENU();
         pCreature->RemoveFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
-
-        if (auto pEscortAI = dynamic_cast<npc_tobias_seecherAI*>(pCreature->AI()))
+        if (npc_tobias_seecherAI* pEscortAI = dynamic_cast<npc_tobias_seecherAI*>(pCreature->AI()))
             pEscortAI->Start(true, pPlayer->GetObjectGuid());
     }
-
     return true;
 }
 
 bool GossipHello_npc_tobias_seecher(Player* pPlayer, Creature* pCreature)
 {
-    auto pInstance = static_cast<ScriptedInstance*>(pPlayer->GetInstanceData());
-
+    ScriptedInstance* pInstance = (ScriptedInstance*)pPlayer->GetInstanceData();
     if (pPlayer->GetQuestStatus(QUEST_JAIL_BREAK) == QUEST_STATUS_INCOMPLETE && pInstance->GetData(TYPE_QUEST_JAIL_BREAK) == IN_PROGRESS)
         pPlayer->ADD_GOSSIP_ITEM(GOSSIP_ICON_CHAT, GOSSIP_TOBIAS, GOSSIP_SENDER_MAIN, GOSSIP_ACTION_INFO_DEF + 1);
-
     pPlayer->SEND_GOSSIP_MENU(2847, pCreature->GetObjectGuid());
-
     return true;
 }
 
@@ -2615,42 +2592,16 @@ CreatureAI* GetAI_npc_tobias_seecher(Creature* pCreature)
     return new npc_tobias_seecherAI(pCreature);
 }
 
-/*
- *
- */
-
-struct go_cell_doorAI : GameObjectAI
+// go_cell_door
+bool GOUse_go_cell_door(Player* pPlayer, GameObject* pGo)
 {
-    explicit go_cell_doorAI(GameObject* pGo) : GameObjectAI(pGo)
-    {
-
-    }
-
-    bool OnUse(Unit* /*pCaster*/) override
-    {
-        auto pInstance = static_cast<ScriptedInstance*>(me->GetInstanceData());
-
-        if (!pInstance)
-            return true;
-
-        pInstance->SetData(me->GetEntry(), true);
-        Creature* pTemp = GetClosestCreatureWithEntry(me, NPC_CREST, 50.0f);
-
-        if (me->GetEntry() == GO_JAIL_DOOR_CREST && pTemp)
-            DoScriptText(SAY_CREST_KILLER, pTemp);
-
-        return false;
-    }
-};
-
-GameObjectAI* GetAI_go_cell_door(GameObject* pGo)
-{
-    return new go_cell_doorAI(pGo);
+    ScriptedInstance* pInstance = (ScriptedInstance*)pGo->GetInstanceData();
+    pInstance->SetData(pGo->GetEntry(), true);
+    Creature* pTemp = GetClosestCreatureWithEntry(pGo, NPC_CREST, 50.0f);
+    if (pGo->GetEntry() == GO_JAIL_DOOR_CREST && pTemp)
+        DoScriptText(SAY_CREST_KILLER, pTemp);
+    return false;
 }
-
-/*
- *
- */
 
 void AddSC_blackrock_depths()
 {
@@ -2726,12 +2677,14 @@ void AddSC_blackrock_depths()
     newscript->GetAI = &GetAI_npc_golem_lord_argelmach;
     newscript->RegisterSelf();
 
+    // Nostalrius : added by Ivina
     newscript = new Script;
     newscript->Name = "npc_GorShak";
     newscript->GetAI = &GetAI_npc_GorShak;
     newscript->pQuestAcceptNPC = &QuestAccept_npc_GorShak;
-    newscript->RegisterSelf();
+    newscript->RegisterSelf();//FIN
 
+    //Alita
     newscript = new Script;
     newscript->Name = "npc_ironhand_guardian";
     newscript->GetAI = &GetAI_npc_ironhand_guardian;
@@ -2794,6 +2747,6 @@ void AddSC_blackrock_depths()
 
     newscript = new Script;
     newscript->Name = "go_cell_door";
-    newscript->GOGetAI = &GetAI_go_cell_door;
-    newscript->RegisterSelf();
+    newscript->pGOHello = &GOUse_go_cell_door;
+    newscript->RegisterSelf(); 
 }

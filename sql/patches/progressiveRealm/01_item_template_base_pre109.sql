@@ -1313,7 +1313,7 @@ UPDATE item_template SET `spellid_1`=0, `spelltrigger_1`=0 WHERE entry=13398;
 -- 2005-01-16 03:12:45 to 2005-11-30 19:42:14 (days delta 324) on for example: http://www.thottbot.com/?n=617396 / http://wow.allakhazam.com/profile.html?55827
 -- 2005-09-14 01:26:53 to 2005-09-14 01:26:53 (days delta 0) on for example: http://www.thottbot.com/?n=104209
 -- Warning: UNRESOLVED conflict
-UPDATE item_template SET `stat_value2`=0, `stat_type3`=6, `stat_value3`=6, `armor`=0, `fire_res`=0 WHERE entry=13400;
+UPDATE item_template SET `stat_value2`=0, `stat_type3`=6, `stat_value3`=6, `armor`=0, `fire_res`=270 WHERE entry=13400;
 -- STATS CHANGED: Timmy's Galoshes (ilevel 59 entry 13402). 2/4 versions
 -- CONFLICT:
 -- 2005-08-28 03:12:42 to 2006-03-21 08:59:29 (days delta 210) on for example: http://www.thottbot.com/?n=104209
@@ -1933,7 +1933,7 @@ UPDATE item_template SET `spellid_1`=9331 WHERE entry=16465;
 -- CONFLICT:
 -- 2005-05-20 00:28:35 to 2006-06-16 07:59:16 (days delta 399) on for example: http://wow.allakhazam.com/item.html?witem=16466
 -- 2005-05-16 00:18:17 to 2005-05-16 00:18:17 (days delta 0) on for example: http://wow.allakhazam.com/dyn/items/iname5.html
-UPDATE item_template SET `stat_value1`=0, `stat_value2`=0, `stat_value3`=0, `stat_type4`=6, `stat_value4`=0, `armor`=0, `fire_res`=0, `nature_res`=0, `frost_res`=0, `shadow_res`=0 WHERE entry=16466;
+UPDATE item_template SET `stat_value1`=1000, `stat_value2`=1000, `stat_value3`=0, `stat_type4`=6, `stat_value4`=1000, `armor`=1000, `fire_res`=1000, `nature_res`=1000, `frost_res`=1000, `shadow_res`=1000 WHERE entry=16466;
 -- SPELLS CHANGED: Field Marshal's Chain Breastplate (ilevel 74 entry 16466). 2 versions
 -- Source: http://wow.allakhazam.com/item.html?witem=16466
 -- Source: http://wow.allakhazam.com/dyn/items/iname5.html
@@ -1945,7 +1945,7 @@ UPDATE item_template SET `spellid_1`=14049, `spelltrigger_1`=1 WHERE entry=16466
 -- CONFLICT:
 -- 2005-07-06 05:22:49 to 2006-06-16 07:59:16 (days delta 351) on for example: http://wow.allakhazam.com/dyn/items/iname7.html
 -- 2005-05-16 00:18:17 to 2005-05-16 00:18:17 (days delta 0) on for example: http://wow.allakhazam.com/dyn/items/iname5.html
-UPDATE item_template SET `stat_value1`=0, `stat_value2`=0, `stat_value3`=0, `stat_type4`=6, `stat_value4`=0, `armor`=0, `fire_res`=0, `nature_res`=0, `frost_res`=0, `shadow_res`=0 WHERE entry=16467;
+UPDATE item_template SET `stat_value1`=1000, `stat_value2`=1000, `stat_value3`=0, `stat_type4`=6, `stat_value4`=1000, `armor`=1000, `fire_res`=1000, `nature_res`=1000, `frost_res`=1000, `shadow_res`=1000 WHERE entry=16467;
 -- SPELLS CHANGED: Marshal's Chain Legguards (ilevel 71 entry 16467). 2 versions
 -- Source: http://wow.allakhazam.com/dyn/items/iname7.html
 -- Source: http://wow.allakhazam.com/dyn/items/iname5.html

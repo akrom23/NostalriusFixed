@@ -1395,184 +1395,40 @@ CreatureAI* GetAI_npc_razormane_stalker(Creature* pCreature)
 }
 
 /*
- * 'Mission: Possible But Not Probable' support:
  * Grand Foreman Puzik Gallywix
- * Mutated Venture Co. Drone
- * Venture Co. Patroller
- * Venture Co. Lookout
  */
 
 enum
 {
-    NPC_MUTATED_VENTURE_CO_DRONE        = 7310,
-    NPC_VENTURE_CO_PATROLLER            = 7308,
-    NPC_VENTURE_CO_LOOKOUT              = 7307,
-    NPC_GRAND_FOREMAN_PUZIK_GALLYWIX    = 7288,
-
-    SPELL_JUGGLER_VEIN_RUPTURE          = 10265,
-    SPELL_LUNG_PUNCTURE                 = 10266,
-    SPELL_SLUSH                         = 10267,
-    SPELL_DECIMATE                      = 10268
+    SPELL_VITAL_WOUND       = 4240
 };
 
-struct npc_mission_possible_but_not_probableAI : ScriptedAI
+struct npc_puzik_gallywixAI : ScriptedAI
 {
-    explicit npc_mission_possible_but_not_probableAI(Creature* pCreature) : ScriptedAI(pCreature)
+    explicit npc_puzik_gallywixAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        npc_mission_possible_but_not_probableAI::Reset();
+        npc_puzik_gallywixAI::Reset();
+    }
+
+    void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
+    {
+        // blizzlike behaviour: if hit with Ambush loses almost half of his hp and receives -attack speed debuff
+        if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_AMBUSH>())
+        {
+            m_creature->CastSpell(m_creature, SPELL_VITAL_WOUND, true);
+            pCaster->DealDamage(m_creature, m_creature->GetMaxHealth() * 0.4f, nullptr, DIRECT_DAMAGE, SPELL_SCHOOL_MASK_NORMAL, nullptr, false);
+        }
     }
 
     void Reset() override
     {
 
     }
-
-    void SpellHit(Unit* /*caster*/, const SpellEntry* pSpell) override
-    {
-        uint32 spellId = 0;
-
-        switch (m_creature->GetEntry())
-        {
-        case NPC_MUTATED_VENTURE_CO_DRONE:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_GARROTE, CF_ROGUE_AMBUSH>())
-                spellId = SPELL_JUGGLER_VEIN_RUPTURE;
-            break;
-        case NPC_VENTURE_CO_PATROLLER:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_RUPTURE>())
-                spellId = SPELL_LUNG_PUNCTURE;
-            break;
-        case NPC_VENTURE_CO_LOOKOUT:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_EVISCERATE>())
-                spellId = SPELL_SLUSH;
-            break;
-        case NPC_GRAND_FOREMAN_PUZIK_GALLYWIX:
-            if (pSpell->IsFitToFamily<SPELLFAMILY_ROGUE, CF_ROGUE_AMBUSH>())
-                spellId = SPELL_DECIMATE;
-            break;
-        default:
-            return;
-        }
-
-        DoCastSpellIfCan(m_creature, spellId);
-    }
 };
 
-CreatureAI* GetAI_npc_mission_possible_but_not_probable(Creature* pCreature)
+CreatureAI* GetAI_npc_puzik_gallywix(Creature* pCreature)
 {
-    return new npc_mission_possible_but_not_probableAI(pCreature);
-}
-
-/*
- * Sarilus Foulborne
- */
-
-enum
-{
-    SPELL_SARILUS_ELEMENTALS_PASSIVE    = 6488,
-    SPELL_SARILUS_ELEMENTALS            = 6490,
-    SPELL_FEED_SARILUS_PASSIVE          = 6498,
-    SPELL_FROSTBOLT                     = 20806,
-};
-
-struct npc_sarilus_foulborneAI : ScriptedAI
-{
-    explicit npc_sarilus_foulborneAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        npc_sarilus_foulborneAI::Reset();
-    }
-
-    uint32 m_uiElementalsTimer;
-    uint32 m_uiFrostboltTimer;
-
-    void Reset() override
-    {
-        m_uiElementalsTimer = urand(1500, 9000);
-        m_uiFrostboltTimer = urand(3500, 4500);
-    }
-
-    void JustSummoned(Creature* pSummoned) override
-    {
-        pSummoned->CastSpell(pSummoned, SPELL_SARILUS_ELEMENTALS_PASSIVE, true);
-        pSummoned->CastSpell(pSummoned, SPELL_FEED_SARILUS_PASSIVE, true);
-    }
-
-    void UpdateAI(uint32 const uiDiff) override
-    {
-        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
-            return;
-
-        if (m_uiElementalsTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_SARILUS_ELEMENTALS) == CAST_OK)
-                m_uiElementalsTimer = 9000;
-        }
-        else
-            m_uiElementalsTimer -= uiDiff;
-
-        if (m_uiFrostboltTimer < uiDiff)
-        {
-            if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_FROSTBOLT) == CAST_OK)
-                m_uiFrostboltTimer = urand(3500, 4500);
-        }
-        else
-            m_uiFrostboltTimer -= uiDiff;
-
-        DoMeleeAttackIfReady();
-    }
-};
-
-CreatureAI* GetAI_npc_sarilus_foulborne(Creature* pCreature)
-{
-    return new npc_sarilus_foulborneAI(pCreature);
-}
-
-/*
- * The Principle Source
- */
-
-enum
-{
-    EVENT_THE_PRINCIPLE_SOURCE      = 5246,
-
-    NPC_BURNING_BLADE_TOXICOLOGIST  = 12319
-};
-
-struct Coords
-{
-    uint32 entry;
-    float x, y, z, o;
-};
-
-static const Coords Toxicologist[] =
-{
-    { NPC_BURNING_BLADE_TOXICOLOGIST, 331.52f, -2270.94f, 242.21f, 5.15f },
-    { NPC_BURNING_BLADE_TOXICOLOGIST, 332.09f, -2291.26f, 241.86f, 1.05f },
-    { NPC_BURNING_BLADE_TOXICOLOGIST, 345.97f, -2282.66f, 241.77f, 3.16f },
-};
-
-bool ProcessEventId_event_the_principle_source(uint32 eventId, Object* pSource, Object* /*pTarget*/, bool /*isStart*/)
-{
-    if (eventId != EVENT_THE_PRINCIPLE_SOURCE)
-        return true;
-
-    auto pPlayer = pSource->ToPlayer();
-
-    if (!pPlayer)
-        return true;
-
-    for (uint8 i = 0; i < 3; ++i)
-    {
-        if (auto pToxicologist = pPlayer->SummonCreature(Toxicologist[i].entry,
-            Toxicologist[i].x,
-            Toxicologist[i].y,
-            Toxicologist[i].z,
-            Toxicologist[i].o, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 2*MINUTE*IN_MILLISECONDS))
-        {
-            pToxicologist->AI()->AttackStart(pPlayer);
-        }        
-    }
-
-    return true;
+    return new npc_puzik_gallywixAI(pCreature);
 }
 
 void AddSC_the_barrens()
@@ -1669,17 +1525,7 @@ void AddSC_the_barrens()
     newscript->RegisterSelf();
 
     newscript = new Script;
-    newscript->Name = "npc_mission_possible_but_not_probable";
-    newscript->GetAI = &GetAI_npc_mission_possible_but_not_probable;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_sarilus_foulborne";
-    newscript->GetAI = &GetAI_npc_sarilus_foulborne;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "event_the_principle_source";
-    newscript->pProcessEventId = &ProcessEventId_event_the_principle_source;
+    newscript->Name = "npc_puzik_gallywix";
+    newscript->GetAI = &GetAI_npc_puzik_gallywix;
     newscript->RegisterSelf();
 }

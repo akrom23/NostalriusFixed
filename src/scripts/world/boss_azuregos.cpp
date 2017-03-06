@@ -1,101 +1,145 @@
-/*
+/* Copyright (C) 2006 - 2009 ScriptDev2 <https://scriptdev2.svn.sourceforge.net/>
+ * Copyright (C) 2010 - 2011 Nostalrius
+ * This program is free software; you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation; either version 2 of the License, or
+ * (at your option) any later version.
  *
+ * This program is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with this program; if not, write to the Free Software
+ * Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
  */
+
+/* ScriptData
+SDName: Boss_Azuregos
+SD%Complete: 90
+SDComment: scripted by Ustaag < Nostalrius >, Rockette < Nostalrius >, Ivina < Nostalrius >.
+SDCategory: Azshara
+EndScriptData */
 
 #include "scriptPCH.h"
 
+// HP :     916,025 (+20% = 1099230)
+/*
+TODO: Fix element curse immune (currently removing the aura at update tick ...)
+TODO: check 300 RG, check spells.
+*/
 enum
 {
-    SPELL_MARK_OF_FROST         = 23184,
-    SPELL_AURA_OF_FROST         = 23185,
-
+    SPELL_MARKOFFROST           = 23182,
+    SPELL_MARKOFFROST1          = 23183,
+    SPELL_MARKOFFROST2          = 23184,
+    SPELL_AURAOFFROST           = 23186,
     SPELL_MANASTORM             = 21097,
     SPELL_CHILL                 = 21098,
     SPELL_FROSTBREATH           = 21099,
     SPELL_ARCANEVACUUM          = 21147,
+// DB :  arcane vacuum : spell_effect_mod : EffectRadiusIndex = 10.
     SPELL_REFLECT               = 22067,
-    SPELL_CLEAVE                = 19983,
+    SPELL_CLEAVE                = 19983,    //Perhaps not right ID
+    SPELL_CURSE_OF_ELEMENTS_R1  = 1490,
+    SPELL_CURSE_OF_ELEMENTS_R2  = 11721,
+    SPELL_CURSE_OF_ELEMENTS_R3  = 11722,
 
     SAY_TELEPORT                = -1000100,
     YELL_AGGRO                  = -1000099,
     YELL_PLAYERDEATH            = -1000098,
+    NPC_AZUREGOS                = 6109,
 };
 
 
 
-struct boss_azuregosAI : ScriptedAI
+struct boss_azuregosAI : public ScriptedAI
 {
-    explicit boss_azuregosAI(Creature* pCreature) : ScriptedAI(pCreature)
+    boss_azuregosAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        boss_azuregosAI::Reset();
+        Reset();
     }
 
-    uint32 m_uiManaStormTimer;
-    uint32 m_uiChillTimer;
-    uint32 m_uiFrostBreathTimer;
-    uint32 m_uiArcaneVacuumTimer;
-    uint32 m_uiReflectTimer;
-    uint32 m_uiCleaveTimer;
-    uint32 m_uiAuraOfFrostTimer;
+    uint32 m_uiMarkOfFrost_Timer;
+    uint32 m_uiManaStorm_Timer;
+    uint32 m_uiChill_Timer;
+    uint32 m_uiFrostBreath_Timer;
+    uint32 m_uiArcaneVacuum_Timer;
+    uint32 m_uiReflect_Timer;
+    uint32 m_uiCleave_Timer;
 
-    void Reset() override
+    void Reset()
     {
-        m_uiManaStormTimer = 16000;
-        m_uiChillTimer = 14000;
-        m_uiFrostBreathTimer = 12000;
-        m_uiArcaneVacuumTimer = 20000;
-        m_uiReflectTimer = 21000;
-        m_uiCleaveTimer = 7000;
-        m_uiAuraOfFrostTimer = 0;
-
+        m_uiMarkOfFrost_Timer = 5000;
+        m_uiManaStorm_Timer = 16000;
+        m_uiChill_Timer = 14000;
+        m_uiFrostBreath_Timer = 12000;
+        m_uiArcaneVacuum_Timer = 20000;
+        m_uiReflect_Timer = 21000;
+        m_uiCleave_Timer = 7000;
+        m_creature->ApplySpellImmune(0, IMMUNITY_SCHOOL, SPELL_SCHOOL_MASK_ARCANE, true);
         m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_GOSSIP);
     }
 
-    void Aggro(Unit* pWho) override
+    void Aggro(Unit* who)
     {
-        DoCastSpellIfCan(m_creature, SPELL_MARK_OF_FROST, CAST_TRIGGERED | CAST_AURA_NOT_PRESENT);
-        DoScriptText(YELL_AGGRO, m_creature, pWho);
+        DoScriptText(YELL_AGGRO, m_creature, who);
+        ScriptedAI::Aggro(who);
     }
 
-    void EnterEvadeMode() override
+    // Ustaag test 2
+    void MoveInLineOfSight(Unit* who)
     {
-        m_creature->RemoveAurasDueToSpell(SPELL_MARK_OF_FROST);
-
-        ScriptedAI::EnterEvadeMode();
+        if (who->GetTypeId() == TYPEID_PLAYER && m_creature->IsWithinDistInMap(who, 45.0f) && m_creature->isInCombat() && !who->isInCombat())
+        {
+            m_creature->SetInCombatWith(who);
+            who->SetInCombatWith(m_creature);
+            m_creature->AddThreat(who);
+        }
     }
 
-    void JustDied(Unit* /*pKiller*/) override
+    void JustDied(Unit* /*pKiller*/)
     {
-        uint32 m_uiRespawnDelay = urand(3, 6) * DAY + urand(0, 24 * HOUR);
+        uint32 m_respawn_delay_Timer = urand(3, 6)*DAY + urand(0, 24*HOUR);
 
-        if (m_creature->GetSpawnFlags() & SPAWN_FLAG_DYNAMIC_RESPAWN_TIME && sWorld.GetActiveSessionCount() > BLIZZLIKE_REALM_POPULATION)
-            m_uiRespawnDelay *= float(BLIZZLIKE_REALM_POPULATION) / float(sWorld.GetActiveSessionCount());
+        /** DRRS */
+        if (m_creature->GetSpawnFlags() & SPAWN_FLAG_DYNAMIC_RESPAWN_TIME &&
+             sWorld.GetActiveSessionCount() > BLIZZLIKE_REALM_POPULATION)
 
-        m_creature->SetRespawnDelay(m_uiRespawnDelay);
-        m_creature->SetRespawnTime(m_uiRespawnDelay);
-        m_creature->SaveRespawnTime();
+            m_respawn_delay_Timer *= float(BLIZZLIKE_REALM_POPULATION) / float(sWorld.GetActiveSessionCount());
+
+       m_creature->SetRespawnDelay(m_respawn_delay_Timer);
+       m_creature->SetRespawnTime(m_respawn_delay_Timer);
+       m_creature->SaveRespawnTime();
     }
 
-    void KilledUnit(Unit* pVictim) override
+    void SpellHit(Unit* /*pCaster*/, const SpellEntry* pSpellEntry) override
+    {
+        if (!pSpellEntry)
+            return;
+
+        // Removing element or shadow curse
+        if (pSpellEntry->IsFitToFamily(SPELLFAMILY_WARLOCK, UI64LIT(0x0000000080000000)))
+        {
+            m_creature->RemoveAurasDueToSpell(pSpellEntry->Id);
+        }
+    }
+
+    void KilledUnit(Unit* pVictim)
     {
         DoScriptText(YELL_PLAYERDEATH, m_creature, pVictim);
+        pVictim->CastSpell(pVictim, SPELL_MARKOFFROST, true);
     }
 
-    void UpdateAI(const uint32 diff) override
+    void UpdateAI(const uint32 diff)
     {
-        if (m_uiAuraOfFrostTimer <= diff)
-        {
-            if (DoCastSpellIfCan(m_creature, SPELL_AURA_OF_FROST) == CAST_OK)
-                m_uiAuraOfFrostTimer = urand(3000, 5000);
-        }
-        else
-            m_uiAuraOfFrostTimer -= diff;
-
+        // Return since we have no target
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
             return;
 
         // Arcane Vacuum
-        if (m_uiArcaneVacuumTimer < diff)
+        if (m_uiArcaneVacuum_Timer < diff)
         {
             DoScriptText(SAY_TELEPORT, m_creature);
 
@@ -103,75 +147,89 @@ struct boss_azuregosAI : ScriptedAI
             for (ThreatList::const_iterator i = tList.begin(); i != tList.end(); ++i)
             {
                 Unit* pUnit = m_creature->GetMap()->GetUnit((*i)->getUnitGuid());
-                if (pUnit && pUnit->GetTypeId() == TYPEID_PLAYER && pUnit->GetDistance(m_creature) < 45.0f)
+                if (pUnit && (pUnit->GetTypeId() == TYPEID_PLAYER) && (pUnit->GetDistance2d(m_creature) < 30.0f) && (!pUnit->HasAura(SPELL_AURAOFFROST)))
                 {
                     m_creature->getThreatManager().modifyThreatPercent(pUnit, -100);
                     DoTeleportPlayer(pUnit, m_creature->GetPositionX(), m_creature->GetPositionY(), m_creature->GetPositionZ() + 5, pUnit->GetOrientation());
                 }
             }
-
             m_creature->CastSpell(m_creature, SPELL_ARCANEVACUUM, true);
 
-            m_uiArcaneVacuumTimer = urand(30000, 45000);
+            m_uiArcaneVacuum_Timer = urand(30000, 50000);
 
             // No reflect right after an arcane vacuum.
-            if (m_uiReflectTimer < 4000)
-                m_uiReflectTimer = urand(4000, 6000);
-
-            // speed up Mana Storm to scare player away after the teleport
-            if (m_uiManaStormTimer < 5000)
-                m_uiManaStormTimer = 1500;
+            if (m_uiReflect_Timer < 4000)
+                m_uiReflect_Timer = urand(4000, 6000);
         }
         else
-            m_uiArcaneVacuumTimer -= diff;
+            m_uiArcaneVacuum_Timer -= diff;
+
+        // MarkOfFrost_Timer
+        if (m_uiMarkOfFrost_Timer < diff)
+        {
+            ThreatList const& tList = m_creature->getThreatManager().getThreatList();
+            for (ThreatList::const_iterator i = tList.begin(); i != tList.end(); ++i)
+            {
+                Unit* target = m_creature->GetMap()->GetUnit((*i)->getUnitGuid());
+                if (target && (target->GetTypeId() == TYPEID_PLAYER) && target->HasAura(SPELL_MARKOFFROST) && !target->HasAura(SPELL_AURAOFFROST))
+                    target->CastSpell(target, SPELL_AURAOFFROST, true);
+            }
+            m_uiMarkOfFrost_Timer = 5000;
+        }
+        else
+            m_uiMarkOfFrost_Timer -= diff;
 
         // Chill_Timer
-        if (m_uiChillTimer < diff)
+        if (m_uiChill_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_CHILL) == CAST_OK)
-                m_uiChillTimer = urand(22000, 29000);
+                m_uiChill_Timer = urand(22000, 29000);
         }
         else
-            m_uiChillTimer -= diff;
+            m_uiChill_Timer -= diff;
 
         // Breath_Timer
-        if (m_uiFrostBreathTimer < diff)
+        if (m_uiFrostBreath_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_FROSTBREATH) == CAST_OK)
-                m_uiFrostBreathTimer = urand(10000, 20000);
+                m_uiFrostBreath_Timer = urand(10000, 20000);
         }
         else
-            m_uiFrostBreathTimer -= diff;
+            m_uiFrostBreath_Timer -= diff;
 
         // ManaStorm_Timer
-        if (m_uiManaStormTimer < diff)
+        if (m_uiManaStorm_Timer < diff)
         {
-            if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0, nullptr, SELECT_FLAG_PLAYER_NOT_GM))
+            if (Unit* target = m_creature->SelectAttackingTarget(ATTACKING_TARGET_RANDOM, 0))
             {
-                if (DoCastSpellIfCan(target, SPELL_MANASTORM) == CAST_OK)
-                    m_uiManaStormTimer = urand(11000, 22000);
+                // Azuregos only targets players who are close to him with Mana Storm, so that players are more likely to be hit with it after Arcane Vacuum
+                if (m_creature->IsWithinDistInMap(target, 5.0f))
+                {
+                    if (DoCastSpellIfCan(target, SPELL_MANASTORM) == CAST_OK)
+                        m_uiManaStorm_Timer = urand(11000, 25000);
+                }
             }
         }
         else
-            m_uiManaStormTimer -= diff;
+            m_uiManaStorm_Timer -= diff;
 
         // Reflect_Timer
-        if (m_uiReflectTimer < diff)
+        if (m_uiReflect_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature, SPELL_REFLECT) == CAST_OK)
-                m_uiReflectTimer = urand(20000, 35000);
+                m_uiReflect_Timer = urand(20000, 35000);
         }
         else
-            m_uiReflectTimer -= diff;
+            m_uiReflect_Timer -= diff;
 
         // Cleave_Timer
-        if (m_uiCleaveTimer < diff)
+        if (m_uiCleave_Timer < diff)
         {
             if (DoCastSpellIfCan(m_creature->getVictim(), SPELL_CLEAVE) == CAST_OK)
-                m_uiCleaveTimer = 7000;
+                m_uiCleave_Timer = 7000;
         }
         else
-            m_uiCleaveTimer -= diff;
+            m_uiCleave_Timer -= diff;
 
         DoMeleeAttackIfReady();
     }

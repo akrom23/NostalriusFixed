@@ -834,8 +834,7 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                         return SPELL_AURA_PROC_FAILED;
                     triggered_spell_id = 23583;
                     break;
-                    
-                // Blade Flurry
+                // Blade Flurry / Deluge de lames
                 case 13877:
                 {
                     // prevent chain of triggered spell from same triggered spell
@@ -847,8 +846,8 @@ SpellAuraProcResult Unit::HandleDummyAuraProc(Unit *pVictim, uint32 damage, Aura
                     if (!target)
                         return SPELL_AURA_PROC_FAILED;
 
-                     // Reconstitute damage before armor reduction
-                    basepoints[0] = damage * 100 / CalcArmorReducedDamage(pVictim, 100);
+        	    // Reconstitute damage before armor reduction
+        	    basepoints[0] = damage * 100 / CalcArmorReducedDamage(pVictim, 100);
 
                     triggered_spell_id = 22482;
                     break;

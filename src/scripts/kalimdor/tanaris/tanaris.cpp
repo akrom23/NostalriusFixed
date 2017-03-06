@@ -295,14 +295,14 @@ enum
     NPC_SHADOW_MAGE         = 5617
 };
 
-struct npc_oox17tnAI : npc_escortAI
+struct npc_oox17tnAI : public npc_escortAI
 {
-    explicit npc_oox17tnAI(Creature* pCreature) : npc_escortAI(pCreature)
+    npc_oox17tnAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
-        npc_oox17tnAI::Reset();
+        Reset();
     }
 
-    void WaypointReached(uint32 i) override
+    void WaypointReached(uint32 i)
     {
         Player* pPlayer = GetPlayerForEscort();
 
@@ -314,22 +314,22 @@ struct npc_oox17tnAI : npc_escortAI
             //1. Ambush: 3 scorpions
             case 22:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
-                m_creature->SummonCreature(NPC_SCORPION, -8340.70f, -4448.17f, 9.17f, 3.10f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_SCORPION, -8343.18f, -4444.35f, 9.44f, 2.35f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_SCORPION, -8348.70f, -4457.80f, 9.58f, 2.02f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_SCORPION, -8340.70f, -4448.17f, 9.17f, 3.10f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_SCORPION, -8343.18f, -4444.35f, 9.44f, 2.35f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
+                m_creature->SummonCreature(NPC_SCORPION, -8348.70f, -4457.80f, 9.58f, 2.02f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
                 break;
             //2. Ambush: 2 Rogues & 1 Shadow Mage
-            case 32:
+            case 28:
                 DoScriptText(SAY_OOX_AMBUSH, m_creature);
 
-                m_creature->SummonCreature(NPC_SCOFFLAW, -7488.02f, -4786.56f, 10.67f, 3.74f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
-                m_creature->SummonCreature(NPC_SHADOW_MAGE, -7486.41f, -4791.55f, 10.54f, 3.26f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS);
+                m_creature->SummonCreature(NPC_SCOFFLAW, -7488.02f, -4786.56f, 10.67f, 3.74f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 10000);
+                m_creature->SummonCreature(NPC_SHADOW_MAGE, -7486.41f, -4791.55f, 10.54f, 3.26f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000);
 
-                if (Creature* pCreature = m_creature->SummonCreature(NPC_SCOFFLAW, -7488.47f, -4800.77f, 9.77f, 2.50f, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, 3 * MINUTE*IN_MILLISECONDS))
+                if (Creature* pCreature = m_creature->SummonCreature(NPC_SCOFFLAW, -7488.47f, -4800.77f, 9.77f, 2.50f, TEMPSUMMON_CORPSE_TIMED_DESPAWN, 30000))
                     DoScriptText(SAY_OOX17_AMBUSH_REPLY, pCreature);
 
                 break;
-            case 44:
+            case 34:
                 DoScriptText(SAY_OOX_END, m_creature);
                 // Award quest credit
                 pPlayer->GroupEventHappens(QUEST_RESCUE_OOX_17TN, m_creature);
@@ -337,9 +337,9 @@ struct npc_oox17tnAI : npc_escortAI
         }
     }
 
-    void Reset() override { }
+    void Reset() { }
 
-    void Aggro(Unit* /*who*/) override
+    void Aggro(Unit* who)
     {
         //For an small probability he say something when it aggros
         switch (urand(0, 9))
@@ -353,7 +353,7 @@ struct npc_oox17tnAI : npc_escortAI
         }
     }
 
-    void JustSummoned(Creature* summoned) override
+    void JustSummoned(Creature* summoned)
     {
         summoned->AI()->AttackStart(m_creature);
     }
@@ -378,7 +378,7 @@ bool QuestAccept_npc_oox17tn(Player* pPlayer, Creature* pCreature, const Quest* 
         if (pPlayer->GetTeam() == HORDE)
             pCreature->setFaction(FACTION_ESCORT_H_PASSIVE);
 
-        if (auto pEscortAI = dynamic_cast<npc_oox17tnAI*>(pCreature->AI()))
+        if (npc_oox17tnAI* pEscortAI = dynamic_cast<npc_oox17tnAI*>(pCreature->AI()))
             pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
     }
     return true;

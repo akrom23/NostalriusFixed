@@ -2612,7 +2612,7 @@ bool ChatHandler::HandleFactionChangeItemsCommand(char* c)
     return true;
 }
 
-// Character recovery
+// Recuperation de personnage.
 bool ChatHandler::HandleRecupCommand(char* c)
 {
     Player* target = getSelectedPlayer();
@@ -2626,10 +2626,10 @@ bool ChatHandler::HandleRecupCommand(char* c)
     /// GENERAL
     QueryResult* recups = CharacterDatabase.PQuery("SELECT level, lifeTimeHK, lifetimeHighestRank, currentRank, currentRankProgress, money "
                           "FROM recups WHERE recupId=%u", recupId);
-    PSendSysMessage("* Recovery ID %u on player #%u", recupId, target->GetGUIDLow());
+    PSendSysMessage("* Recuperation ID %u sur joueur #%u", recupId, target->GetGUIDLow());
     if (!recups)
     {
-        SendSysMessage("-> Recovery data not found.");
+        SendSysMessage("-> Recuperation introuvable.");
         return false;
     }
     Field *fields = recups->Fetch();
@@ -2684,7 +2684,7 @@ bool ChatHandler::HandleRecupCommand(char* c)
             item->SaveToDB();
 
             MailDraft draft;
-            draft.SetSubjectAndBody("Character import", "Welcome to our server.");
+            draft.SetSubjectAndBody("Importation personnage", "Toute l'equipe de Nostalrius vous souhaite la bienvenue.");
             draft.AddItem(item);
             MailSender sender(MAIL_NORMAL, m_session->GetPlayer()->GetObjectGuid().GetCounter(), MAIL_STATIONERY_GM);
             draft.SendMailTo(MailReceiver(target, target->GetObjectGuid()),  m_session->GetPlayer());

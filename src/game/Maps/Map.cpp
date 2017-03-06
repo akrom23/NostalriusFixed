@@ -46,7 +46,6 @@
 #include "Chat.h"
 #include "MovementBroadcaster.h"
 #include "PlayerBroadcaster.h"
-#include "GridSearchers.h"
 
 #define MAX_GRID_LOAD_TIME      50
 
@@ -1613,8 +1612,6 @@ void Map::CreateInstanceData(bool load)
     if (!i_mapEntry->scriptId)
         return;
 
-    i_script_id = i_mapEntry->scriptId;
-
     i_data = sScriptMgr.CreateInstanceData(this);
     if (!i_data)
         return;
@@ -2660,31 +2657,11 @@ void Map::ScriptsProcess()
                 float z = step.script->z;
                 float o = step.script->o;
 
-                if (step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE || step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE_TEMP)
-                {
-                    float dist = step.script->summonCreature.uniqueDistance ? step.script->summonCreature.uniqueDistance : (summoner->GetDistance(x, y, z) + 50.0f) * 2;
-                    std::list<Creature*> foundCreatures;
+                if (step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE)
+                    if (summoner->FindNearestCreature(step.script->summonCreature.creatureEntry, (summoner->GetDistance(x, y, z) + 50) * 2))
+                        break;
 
-                    GetCreatureListWithEntryInGrid(foundCreatures, summoner, step.script->summonCreature.creatureEntry, dist);
-
-                    if (!foundCreatures.empty())
-                    {
-                        uint32 exAmount = 0;
-                        uint32 reqAmount = step.script->summonCreature.uniqueLimit ? step.script->summonCreature.uniqueLimit : 1;
-
-                        if (step.script->summonCreature.flags & SUMMON_CREATURE_UNIQUE)
-                            exAmount = foundCreatures.size();
-                        else
-                            exAmount = count_if(foundCreatures.begin(), foundCreatures.end(), [&](Creature* c) { return c->IsTemporarySummon(); });
-
-                        if (exAmount >= reqAmount)
-                            break;
-                    }
-                }
-
-                Creature* pCreature = summoner->SummonCreature(step.script->summonCreature.creatureEntry, x, y, z, o, 
-                    TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, step.script->summonCreature.despawnDelay, step.script->summonCreature.flags & SUMMON_CREATURE_ACTIVE);
-
+                Creature* pCreature = summoner->SummonCreature(step.script->summonCreature.creatureEntry, x, y, z, o, TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, step.script->summonCreature.despawnDelay, step.script->summonCreature.flags & SUMMON_CREATURE_ACTIVE);
                 if (!pCreature)
                 {
                     sLog.outError("SCRIPT_COMMAND_TEMP_SUMMON (script id %u) failed for creature (entry: %u).", step.script->id, step.script->summonCreature.creatureEntry);

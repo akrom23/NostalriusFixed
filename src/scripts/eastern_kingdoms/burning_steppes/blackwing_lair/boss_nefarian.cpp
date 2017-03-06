@@ -77,13 +77,12 @@ struct ClassCallInfo
     int32 m_uiYell;
 };
 
-struct boss_nefarianAI : ScriptedAI
+struct boss_nefarianAI : public ScriptedAI
 {
-    explicit boss_nefarianAI(Creature* pCreature) : ScriptedAI(pCreature)
+    boss_nefarianAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
-        m_pInstance = static_cast<ScriptedInstance*>(pCreature->GetInstanceData());
-
-        boss_nefarianAI::Reset();
+        m_pInstance = (ScriptedInstance*)pCreature->GetInstanceData();
+        Reset();
     }
 
     ScriptedInstance* m_pInstance;
@@ -105,7 +104,7 @@ struct boss_nefarianAI : ScriptedAI
     std::list<ObjectGuid> MagePlayerGUID;
     uint32 m_uiMageTriggerTimer;
 
-    void Reset() override
+    void Reset()
     {
         m_uiShadowFlameTimer    = urand(18000, 25000);
         m_uiBellowingRoarTimer  = urand(25000, 30000);
@@ -134,7 +133,7 @@ struct boss_nefarianAI : ScriptedAI
         m_vPossibleCalls.push_back(ClassCallInfo(CLASS_DRUID, SAY_DRUID));
     }
 
-    void KilledUnit(Unit* pVictim) override
+    void KilledUnit(Unit* pVictim)
     {
         if (urand(0, 4))
             return;
@@ -142,7 +141,7 @@ struct boss_nefarianAI : ScriptedAI
         DoScriptText(SAY_SLAY, m_creature, pVictim);
     }
 
-    void JustDied(Unit* /*pKiller*/) override
+    void JustDied(Unit* /*pKiller*/)
     {
         DoScriptText(SAY_DEATH, m_creature);
 
@@ -150,7 +149,7 @@ struct boss_nefarianAI : ScriptedAI
             m_pInstance->SetData(TYPE_NEFARIAN, DONE);
     }
 
-    void EnterEvadeMode() override
+    void EnterEvadeMode()
     {
         if (m_pInstance)
         {
@@ -161,12 +160,12 @@ struct boss_nefarianAI : ScriptedAI
         m_creature->DeleteLater();
     }
 
-    void JustSummoned(Creature* pSummoned) override
+    void JustSummoned(Creature* pSummoned)
     {
         pSummoned->SetInCombatWithZone();
     }
 
-    void MovementInform(uint32 uiType, uint32 uiPointId) override
+    void MovementInform(uint32 uiType, uint32 uiPointId)
     {
         if (uiType != POINT_MOTION_TYPE)
             return;
@@ -255,16 +254,8 @@ struct boss_nefarianAI : ScriptedAI
                         break;
                     case CLASS_WARLOCK:
                         pPlayer->CastSpell(pPlayer, SPELL_WARLOCK, true); // OK
-                        m_creature->SummonCreature(14668, 
-                            pPlayer->GetPositionX(), 
-                            pPlayer->GetPositionY(), 
-                            pPlayer->GetPositionZ(), 
-                            pPlayer->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10000);
-                        m_creature->SummonCreature(14668, 
-                            pPlayer->GetPositionX(), 
-                            pPlayer->GetPositionY(), 
-                            pPlayer->GetPositionZ(), 
-                            pPlayer->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10000);
+                        m_creature->SummonCreature(14668, pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ(), pPlayer->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10000);
+                        m_creature->SummonCreature(14668, pPlayer->GetPositionX(), pPlayer->GetPositionY(), pPlayer->GetPositionZ(), pPlayer->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10000);
                         break;
                     case CLASS_DRUID:
                         pPlayer->AddAura(SPELL_DRUID); // OK
@@ -273,12 +264,11 @@ struct boss_nefarianAI : ScriptedAI
                 }
             }
         }
-        m_bWarriorStance = bClassFound && ClassCalled == CLASS_WARRIOR;
-
-        return bClassFound;
+        m_bWarriorStance = (bClassFound && ClassCalled == CLASS_WARRIOR);
+        return (bClassFound);
     }
 
-    void UpdateAI(const uint32 uiDiff) override
+    void UpdateAI(const uint32 uiDiff)
     {
         if (m_uiTransitionTimer && !m_bTransitionDone)
         {
@@ -417,7 +407,7 @@ struct boss_nefarianAI : ScriptedAI
                             {
                                 Unit* pUnit = m_creature->GetMap()->GetUnit((*itr2)->getUnitGuid());
                                 if (pUnit && pUnit->IsCreature() && pUnit->ToCreature()->IsTotem())
-                                    pUnit = nullptr;
+                                    pUnit = NULL;
                                 if (pUnit && pUnit->GetDistance(pMage) < 60.0f && !pUnit->HasAura(SPELL_POLYMORPH))
                                     m_vPossibleVictim.push_back(pUnit->GetObjectGuid());
                             }
@@ -449,13 +439,9 @@ struct boss_nefarianAI : ScriptedAI
             std::list<GameObject*> GOListe;
             GetGameObjectListWithEntryInGrid(GOListe, m_creature, 179804, 200.0f);
 
-            for (auto itr = GOListe.begin(); itr != GOListe.end(); ++itr)
+            for (std::list<GameObject*>::iterator itr = GOListe.begin(); itr != GOListe.end(); ++itr)
             {
-                m_creature->SummonCreature(NPC_BONE_CONSTRUCT, 
-                    (*itr)->GetPositionX(), 
-                    (*itr)->GetPositionY(), 
-                    (*itr)->GetPositionZ(), 
-                    (*itr)->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10000);
+                m_creature->SummonCreature(NPC_BONE_CONSTRUCT, (*itr)->GetPositionX(), (*itr)->GetPositionY(), (*itr)->GetPositionZ(), (*itr)->GetOrientation(), TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 10000);
                 (*itr)->DeleteLater();
             }
         }
@@ -467,7 +453,7 @@ struct boss_nefarianAI : ScriptedAI
             DoScriptText(SAY_XHEALTH, m_creature);
         }
 
-        if (DoMeleeAttackIfReady())
+        if (CreatureAI::DoMeleeAttackIfReady())
             if (m_creature->HasAura(10612) && !m_creature->HasAura(10610))
                 if (!urand(0, 4))
                     m_creature->CastSpell(m_creature, 10610, true);
@@ -484,9 +470,9 @@ enum
     SPELL_ROOT_SELF     = 23973,
 };
 
-struct npc_corrupted_totemAI : ScriptedAI
+struct npc_corrupted_totemAI : public ScriptedAI
 {
-    explicit npc_corrupted_totemAI(Creature* pCreature) : ScriptedAI(pCreature)
+    npc_corrupted_totemAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         m_uiCreatureEntry = pCreature->GetEntry();
 
@@ -495,15 +481,14 @@ struct npc_corrupted_totemAI : ScriptedAI
         pCreature->SetHealth(HP);
 
         m_bAuraAdded = false;
-
-        npc_corrupted_totemAI::Reset();
+        Reset();
     }
 
     uint32 m_uiCreatureEntry;
     uint32 m_uiCheckTimer;
     bool m_bAuraAdded;
 
-    void Reset() override
+    void Reset()
     {
         m_creature->addUnitState(UNIT_STAT_ROOT);
 
@@ -514,12 +499,12 @@ struct npc_corrupted_totemAI : ScriptedAI
         m_uiCheckTimer = 1000;
     }
 
-    void Aggro(Unit* /*pWho*/) override
+    void Aggro(Unit* /*pWho*/)
     {
         m_creature->SetInCombatWithZone();
     }
 
-    void JustDied(Unit* /*pKiller*/) override
+    void JustDied(Unit* /*pKiller*/)
     {
         switch (m_uiCreatureEntry)
         {
@@ -537,7 +522,7 @@ struct npc_corrupted_totemAI : ScriptedAI
         }
     }
 
-    void SetAura(bool on, uint32 uiSpellId) const
+    void SetAura(bool on, uint32 uiSpellId)
     {
         int damage = 0;
         switch (uiSpellId)
@@ -567,7 +552,7 @@ struct npc_corrupted_totemAI : ScriptedAI
         for (entriesIt = mobsEntries.begin(); entriesIt != mobsEntries.end(); ++entriesIt)
         {
             std::list<Creature*> tmpMobsList;
-            GetCreatureListWithEntryInGrid(tmpMobsList, m_creature, *entriesIt, 55.0f);
+            GetCreatureListWithEntryInGrid(tmpMobsList, m_creature, (*entriesIt), 55.0f);
             while (!tmpMobsList.empty())
             {
                 Creature* curr = tmpMobsList.front();
@@ -583,7 +568,7 @@ struct npc_corrupted_totemAI : ScriptedAI
                         if (!curr->HasAura(uiSpellId))
                         {
                             if (damage)
-                                curr->CastCustomSpell(curr, uiSpellId, &damage, nullptr, nullptr, true);
+                                curr->CastCustomSpell(curr, uiSpellId, &damage, NULL, NULL, true);
                             else
                                 curr->AddAura(uiSpellId);
                         }
@@ -600,7 +585,7 @@ struct npc_corrupted_totemAI : ScriptedAI
         }
     }
 
-    void UpdateAI(const uint32 uiDiff) override
+    void UpdateAI(const uint32 uiDiff)
     {
         if (!m_creature->HasAura(SPELL_ROOT_SELF))
             m_creature->AddAura(SPELL_ROOT_SELF);

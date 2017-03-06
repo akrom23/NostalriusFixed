@@ -74,15 +74,14 @@ bool MapSessionFilter::Process(WorldPacket * packet)
 /// WorldSession constructor
 WorldSession::WorldSession(uint32 id, WorldSocket *sock, AccountTypes sec, time_t mute_time, LocaleConstant locale) :
     m_muteTime(mute_time),
-    _pcktReading(nullptr), _pcktWriting(nullptr), _pcktRecvDump(nullptr), _pcktDumpFlags(0), _pcktReadSpeedRate(1.0f),
-    _pcktReadTimer(0), _pcktReadLastUpdate(0), m_connected(true), m_disconnectTimer(0), m_who_recvd(false),
-    m_ah_list_recvd(false), _scheduleBanLevel(0),
-    _accountFlags(0), m_idleTime(WorldTimer::getMSTime()), _player(nullptr), m_Socket(sock), _security(sec), _accountId(id), _logoutTime(0), m_inQueue(false),
-    m_playerLoading(false), m_playerLogout(false), m_playerRecentlyLogout(false), m_playerSave(false), m_sessionDbcLocale(sWorld.GetAvailableDbcLocale(locale)), 
-    m_sessionDbLocaleIndex(sObjectMgr.GetIndexForLocale(locale)), m_latency(0), m_tutorialState(TUTORIALDATA_UNCHANGED), m_warden(nullptr),
-    m_bot(nullptr), m_lastReceivedPacketTime(0), _clientOS(CLIENT_OS_UNKNOWN), _gameBuild(0),
-    _charactersCount(10), _characterMaxLevel(0), _clientHashComputeStep(HASH_NOT_COMPUTED), m_masterSession(nullptr), m_nodeSession(nullptr),
-    m_masterPlayer(nullptr)
+    _player(NULL), m_Socket(sock), _security(sec), _accountId(id), _logoutTime(0),
+    m_inQueue(false), m_playerLoading(false), m_playerLogout(false), m_playerRecentlyLogout(false), m_playerSave(false),
+    m_sessionDbcLocale(sWorld.GetAvailableDbcLocale(locale)), m_sessionDbLocaleIndex(sObjectMgr.GetIndexForLocale(locale)),
+    m_latency(0), m_tutorialState(TUTORIALDATA_UNCHANGED), _pcktReading(NULL), _pcktWriting(NULL), _pcktRecvDump(NULL), _pcktReadTimer(0), _pcktReadLastUpdate(0), _pcktReadSpeedRate(1.0f),
+    m_warden(NULL), m_bot(NULL), m_connected(true), m_disconnectTimer(0), m_lastReceivedPacketTime(0), _gameBuild(0), _clientOS(CLIENT_OS_UNKNOWN), _charactersCount(10), _pcktDumpFlags(0),
+    m_ah_list_recvd(false), m_who_recvd(false), _characterMaxLevel(0), _clientHashComputeStep(HASH_NOT_COMPUTED),
+    _scheduleBanLevel(0), _accountFlags(0), m_nodeSession(NULL), m_masterSession(NULL), m_idleTime(WorldTimer::getMSTime()),
+    m_masterPlayer(NULL)
 {
     if (sock)
     {
@@ -105,17 +104,17 @@ WorldSession::~WorldSession()
     {
         m_Socket->CloseSocket();
         m_Socket->RemoveReference();
-        m_Socket = nullptr;
+        m_Socket = NULL;
     }
 
     ///- empty incoming packet queue
-    WorldPacket* packet = nullptr;
+    WorldPacket* packet = NULL;
     for (int i = 0; i < PACKET_PROCESS_MAX_TYPE; ++i)
         while (_recvQueue[i].next(packet))
             delete packet;
-    SetDumpPacket(nullptr);
-    SetReadPacket(nullptr);
-    SetDumpRecvPackets(nullptr);
+    SetDumpPacket(NULL);
+    SetReadPacket(NULL);
+    SetDumpRecvPackets(NULL);
 
     if (m_warden)
         delete m_warden;
@@ -185,13 +184,13 @@ void WorldSession::SendPacket(WorldPacket const* packet)
     static uint64 sendPacketCount = 0;
     static uint64 sendPacketBytes = 0;
 
-    static time_t firstTime = time(nullptr);
+    static time_t firstTime = time(NULL);
     static time_t lastTime = firstTime;                     // next 60 secs start time
 
     static uint64 sendLastPacketCount = 0;
     static uint64 sendLastPacketBytes = 0;
 
-    time_t cur_time = time(nullptr);
+    time_t cur_time = time(NULL);
 
     if ((cur_time - lastTime) < 60)
     {
@@ -338,14 +337,14 @@ bool WorldSession::Update(PacketFilter& updater)
         if (m_Socket && m_Socket->IsClosed())
         {
             m_Socket->RemoveReference();
-            m_Socket = nullptr;
+            m_Socket = NULL;
 
             // Character stays IG for 2 minutes
             return ForcePlayerLogoutDelay();
         }
 
         ///- If necessary, log the player out
-        time_t currTime = time(nullptr);
+        time_t currTime = time(NULL);
         bool forceConnection = sPlayerBotMgr.ForceAccountConnection(this);
         if (sWorld.IsStopped())
             forceConnection = false;
@@ -376,7 +375,7 @@ bool WorldSession::Update(PacketFilter& updater)
             fscanf(_pcktReading, "%u", &nextTime);
             if (!nextTime)
             {
-                SetReadPacket(nullptr);
+                SetReadPacket(NULL);
                 break;
             }
             fseek(_pcktReading, pos, SEEK_SET);
@@ -426,7 +425,7 @@ bool WorldSession::Update(PacketFilter& updater)
             // Got an error
             if (errorWhileReading)
             {
-                SetReadPacket(nullptr);
+                SetReadPacket(NULL);
                 break;
             }
         }
@@ -443,7 +442,7 @@ bool WorldSession::CanProcessPackets() const
 
 void WorldSession::ProcessPackets(PacketFilter& updater)
 {
-    WorldPacket* packet = nullptr;
+    WorldPacket* packet = NULL;
     _receivedPacketType[updater.PacketProcessType()] = false;
     while (CanProcessPackets() && _recvQueue[updater.PacketProcessType()].next(packet, updater))
     {
@@ -596,7 +595,7 @@ void WorldSession::ProcessPackets(PacketFilter& updater)
 void WorldSession::ClearIncomingPacketsByType(PacketProcessing type)
 {
     ASSERT(type < PACKET_PROCESS_MAX_TYPE);
-    WorldPacket* data = nullptr;
+    WorldPacket* data = NULL;
     while (_recvQueue[type].next(data))
         delete data;
 }
@@ -712,24 +711,10 @@ void WorldSession::LogoutPlayer(bool Save)
         ///- Remove pet
         _player->RemovePet(PET_SAVE_AS_CURRENT);
 
-        // Dungeon anti-exploit. Should be before save
-        bool removedFromMap = false;
-        if (Map* map = _player->GetMap())
-        {
-            if (map->IsNonRaidDungeon() && _player->GetGroup())
-            {
-                AreaTrigger const* at = sObjectMgr.GetGoBackTrigger(map->GetId());
-                if (at)
-                    removedFromMap = _player->TeleportTo(at->target_mapId, at->target_X, at->target_Y, at->target_Z, _player->GetOrientation());
-                else
-                    removedFromMap = _player->TeleportToHomebind();
-            }
-        }
-
         ///- empty buyback items and save the player in the database
         // some save parts only correctly work in case player present in map/player_lists (pets, etc)
         if (Save)
-            _player->SaveToDB(false, removedFromMap);
+            _player->SaveToDB(false);
 
         ///- Leave all channels before player delete...
         _player->CleanupChannels();
@@ -743,15 +728,15 @@ void WorldSession::LogoutPlayer(bool Save)
             _player->RemoveFromGroup();
 
         ///- Send update to group
-        if (Group* group = _player->GetGroup())
-            group->UpdatePlayerOnlineStatus(_player, false);
+        if (_player->GetGroup())
+            _player->GetGroup()->SendUpdate();
 
         ///- Remove the player from the world
         // the player may not be in the world when logging out
         // e.g if he got disconnected during a transfer to another map
         // calls to GetMap in this case may cause crashes
 
-        if (inWorld && !removedFromMap)
+        if (inWorld)
         {
             Map* _map = _player->GetMap();
             _map->Remove(_player, true);
@@ -762,7 +747,7 @@ void WorldSession::LogoutPlayer(bool Save)
             Map::DeleteFromWorld(_player);
         }
 
-        SetPlayer(nullptr);                                    // deleted in Remove/DeleteFromWorld call
+        SetPlayer(NULL);                                    // deleted in Remove/DeleteFromWorld call
 
         if (GetMasterSession())
             GetMasterSession()->SendPacket(NMSG_LOGOUT_COMPLETE, GetAccountId());
@@ -781,12 +766,12 @@ void WorldSession::LogoutPlayer(bool Save)
         {
             sSocialMgr.SendFriendStatus(m_masterPlayer, FRIEND_OFFLINE, m_masterPlayer->GetObjectGuid(), true);
             sSocialMgr.RemovePlayerSocial(m_masterPlayer->GetGUIDLow());
-            m_masterPlayer->SetSocial(nullptr);
+            m_masterPlayer->SetSocial(NULL);
         }
 
         m_masterPlayer->SaveToDB();
         delete m_masterPlayer;
-        m_masterPlayer = nullptr;
+        m_masterPlayer = NULL;
     }
 
     m_playerLogout = false;
@@ -1039,10 +1024,10 @@ void WorldSession::SetDumpPacket(const char* file)
     {
         if (_pcktWriting)
             fclose(_pcktWriting);
-        _pcktWriting = nullptr;
+        _pcktWriting = NULL;
         return;
     }
-    SetDumpPacket(nullptr); // Clean
+    SetDumpPacket(NULL); // Clean
     _pcktWriting = fopen(file, "w+");
     if (_pcktWriting)
     {
@@ -1057,10 +1042,10 @@ void WorldSession::SetReadPacket(const char* file)
     {
         if (_pcktReading)
             fclose(_pcktReading);
-        _pcktReading = nullptr;
+        _pcktReading = NULL;
         return;
     }
-    SetReadPacket(nullptr); // Clean
+    SetReadPacket(NULL); // Clean
     _pcktReading = fopen(file, "r");
     if (_pcktReading)
     {
@@ -1069,7 +1054,7 @@ void WorldSession::SetReadPacket(const char* file)
         if (!fscanf(_pcktReading, "BEGIN_TIME=%u\n", &fileTime))
         {
             fclose(_pcktReading);
-            _pcktReading = nullptr;
+            _pcktReading = NULL;
             return;
         }
         _pcktReadTimer = fileTime;
@@ -1087,10 +1072,10 @@ void WorldSession::SetDumpRecvPackets(const char* file)
     {
         if (_pcktRecvDump)
             fclose(_pcktRecvDump);
-        _pcktRecvDump = nullptr;
+        _pcktRecvDump = NULL;
         return;
     }
-    SetDumpRecvPackets(nullptr); // Clean
+    SetDumpRecvPackets(NULL); // Clean
     _pcktRecvDump = fopen(file, "w+");
     if (_pcktRecvDump)
         fprintf(_pcktRecvDump, "#Begin packet dump on %s [account %s]\n", GetPlayerName(), GetUsername().c_str());
@@ -1326,7 +1311,7 @@ void WorldSession::LoginPlayerToNode(NodeSession* session)
         Map::DeleteFromWorld(_player);
     }
 
-    SetPlayer(nullptr);
+    SetPlayer(NULL);
 }
 
 uint32 WorldSession::GenerateItemLowGuid()

@@ -27,7 +27,7 @@ class ChatHandler;
 class WardenInterface;
 class PlayerAnticheatInterface;
 class AccountPersistentData;
-struct AreaEntry;
+struct AreaTableEntry;
 
 // Generic class for Warden memory queries
 /*class WardenMemoryQuery
@@ -80,7 +80,7 @@ class PlayerAnticheatInterface
         virtual void AddCheats(uint32 cheats, uint32 count = 1) {}
         virtual void Unreachable(Unit* attacker) {}
         virtual void HandleCommand(ChatHandler* handler) {}
-        virtual void OnExplore(AreaEntry const* p) {}
+        virtual void OnExplore(AreaTableEntry const* p) {}
         virtual void OnTransport(Player* plMover, ObjectGuid transportGuid) {}
 
         virtual bool HandleAnticheatTests(MovementInfo& movementInfo, WorldSession* session, WorldPacket* packet) { return true; }
@@ -92,25 +92,6 @@ class PlayerAnticheatInterface
         virtual bool InterpolateMovement(MovementInfo const& mi, uint32 diffMs, float &x, float &y, float &z, float &o) { return true; }
 
         virtual bool CheckTeleport(uint32 opcode, MovementInfo& movementInfo) { return true; }
-};
-
-class AntispamInterface
-{
-public:
-    virtual ~AntispamInterface() {}
-
-    virtual void loadData() {}
-    virtual void loadConfig() {}
-
-    virtual std::string normalizeMessage(const std::string &msg, uint32 mask = 0) { return msg; }
-    virtual bool filterMessage(const std::string &msg) { return false; }
-
-    virtual void addMessage(const std::string& msg, uint32 type, PlayerPointer from, PlayerPointer to) {}
-
-    virtual bool isMuted(uint32 accountId, bool checkChatType = false, uint32 chatType = 0) const { return false; }
-    virtual void mute(uint32 accountId) {}
-    virtual void unmute(uint32 accountId) {}
-    virtual void showMuted(WorldSession* session) {}
 };
 
 class AnticheatLibInterface
@@ -133,7 +114,11 @@ public:
     virtual void OnClientHashComputed(WorldSession* sess) {}
 
     // Antispam wrappers
-    virtual AntispamInterface* GetAntispam() const { return nullptr; }
+    virtual std::string NormalizeMessage(const std::string &msg, uint32 mask = 0) { return msg; }
+    virtual bool FilterChatMessage(PlayerPointer playerPointer, uint32 type, const std::string &msg) { return false; }
+    virtual void mute(PlayerPointer playerPointer) {}
+    virtual void unmute(PlayerPointer playerPointer) {}
+    virtual void showMuted(WorldSession* session) {}
     virtual bool CanWhisper(AccountPersistentData const& data, MasterPlayer* player) { return true; }
 };
 

@@ -162,7 +162,7 @@ ObjectMgr::~ObjectMgr()
     for (CacheTrainerSpellMap::iterator itr = m_mCacheTrainerSpellMap.begin(); itr != m_mCacheTrainerSpellMap.end(); ++itr)
         itr->second.Clear();
 
-    for (PlayerCacheDataMap::iterator itr = m_playerCacheData.begin(); itr != m_playerCacheData.end(); ++itr)
+    for (PlayerCacheDataMap::iterator itr = m_PlayerCacheData.begin(); itr != m_PlayerCacheData.end(); ++itr)
         delete itr->second;
 }
 
@@ -499,7 +499,7 @@ void ObjectMgr::LoadSavedVariable()
 // Mise en cache de donnees des joueurs
 void ObjectMgr::LoadPlayerCacheData()
 {
-    m_playerCacheData.clear();
+    m_PlayerCacheData.clear();
     m_playerNameToGuid.clear();
 
     QueryResult* result = CharacterDatabase.Query("SELECT guid, race, class, gender, account, name, level, zone FROM characters;");
@@ -532,30 +532,32 @@ void ObjectMgr::LoadPlayerCacheData()
 
 PlayerCacheData* ObjectMgr::GetPlayerDataByGUID(uint32 guidLow)
 {
-    auto itr = m_playerCacheData.find(guidLow);
-    if (itr != m_playerCacheData.end())
-        return itr->second;
-    return nullptr;
+    PlayerCacheDataMap::iterator it = m_PlayerCacheData.find(guidLow);
+    if (it != m_PlayerCacheData.end())
+        return it->second;
+    return NULL;
 }
 
 PlayerCacheData* ObjectMgr::GetPlayerDataByName(const std::string& name)
 {
-    if (ObjectGuid guid = GetPlayerGuidByName(name))
-        return GetPlayerDataByGUID(guid.GetCounter());
-    return nullptr;
+    if (uint32 guidLow = GetPlayerGuidByName(name))
+        return GetPlayerDataByGUID(guidLow);
+    return NULL;
 }
 
 ObjectGuid ObjectMgr::GetPlayerGuidByName(const std::string& name) const
 {
-    auto itr = m_playerNameToGuid.find(name);
-    if (itr != m_playerNameToGuid.end())
-        return ObjectGuid(HIGHGUID_PLAYER, itr->second);
+    // En cache ?
+    std::map<std::string, uint32>::const_iterator it = m_playerNameToGuid.find(name);
+    if (it != m_playerNameToGuid.end())
+        return ObjectGuid(HIGHGUID_PLAYER, it->second);
     return ObjectGuid();
 }
 
 bool ObjectMgr::GetPlayerNameByGUID(ObjectGuid guid, std::string &name) const
 {
-    if (auto pData = sObjectMgr.GetPlayerDataByGUID(guid.GetCounter()))
+    // En cache ?
+    if (PlayerCacheData* pData = sObjectMgr.GetPlayerDataByGUID(guid.GetCounter()))
     {
         name = pData->sName;
         return true;
@@ -565,10 +567,12 @@ bool ObjectMgr::GetPlayerNameByGUID(ObjectGuid guid, std::string &name) const
 
 Team ObjectMgr::GetPlayerTeamByGUID(ObjectGuid guid) const
 {
-    if (auto player = GetPlayer(guid))
+    // prevent DB access for online player
+    if (Player* player = GetPlayer(guid))
         return Player::TeamForRace(player->getRace());
 
-    if (auto pData = sObjectMgr.GetPlayerDataByGUID(guid.GetCounter()))
+    // En cache ?
+    if (PlayerCacheData* pData = sObjectMgr.GetPlayerDataByGUID(guid.GetCounter()))
         return Player::TeamForRace(pData->uiRace);
 
     return TEAM_NONE;
@@ -576,10 +580,12 @@ Team ObjectMgr::GetPlayerTeamByGUID(ObjectGuid guid) const
 
 uint32 ObjectMgr::GetPlayerAccountIdByGUID(ObjectGuid guid) const
 {
-    if (auto player = GetPlayer(guid))
+    // prevent DB access for online player
+    if (Player* player = GetPlayer(guid))
         return player->GetSession()->GetAccountId();
 
-    if (auto pData = sObjectMgr.GetPlayerDataByGUID(guid.GetCounter()))
+    // En cache ?
+    if (PlayerCacheData* pData = sObjectMgr.GetPlayerDataByGUID(guid.GetCounter()))
         return pData->uiAccount;
 
     return 0;
@@ -587,59 +593,56 @@ uint32 ObjectMgr::GetPlayerAccountIdByGUID(ObjectGuid guid) const
 
 uint32 ObjectMgr::GetPlayerAccountIdByPlayerName(const std::string& name) const
 {
-    if (auto pData = sObjectMgr.GetPlayerDataByName(name))
+    // En cache ?
+    if (PlayerCacheData* pData = sObjectMgr.GetPlayerDataByName(name))
         return pData->uiAccount;
     return 0;
 }
 
 void ObjectMgr::InsertPlayerInCache(Player *pPlayer)
 {
-    auto pSession = pPlayer->GetSession();
+    WorldSession* pSession = pPlayer->GetSession();
     if (!pSession)
         return;
-    auto accountId = pSession->GetAccountId();
+    uint32 accountId = pSession->GetAccountId();
     InsertPlayerInCache(pPlayer->GetGUIDLow(), pPlayer->getRace(), pPlayer->getClass(), pPlayer->getGender(), accountId, pPlayer->GetName(), pPlayer->getLevel(), pPlayer->GetCachedZoneId());
 }
 
-void ObjectMgr::InsertPlayerInCache(uint32 lowGuid, uint32 race, uint32 _class, uint32 gender, uint32 accountId, const std::string& name, uint32 level, uint32 zoneId)
+void ObjectMgr::InsertPlayerInCache(uint32 Guid, uint32 uiRace, uint32 uiClass, uint32 uiGender, uint32 account, const std::string& name, uint32 level, uint32 zoneId)
 {
-    auto data = new PlayerCacheData;
-    data->uiGuid    = lowGuid;
-    data->uiAccount = accountId;
-    data->uiRace    = race;
-    data->uiClass   = _class;
-    data->uiGender  = gender;
+    PlayerCacheData *data = new PlayerCacheData;
+    data->uiGuid    = Guid;
+    data->uiAccount = account;
+    data->uiRace    = uiRace;
+    data->uiClass   = uiClass;
+    data->uiGender  = uiGender;
     data->uiLevel   = level;
     data->sName     = name;
     data->uiZoneId  = zoneId;
 
-    m_playerCacheData[lowGuid] = data;
-    m_playerNameToGuid[name] = lowGuid;
+    m_PlayerCacheData[Guid] = data;
+    m_playerNameToGuid[name] = Guid;
 }
 
-void ObjectMgr::DeletePlayerFromCache(uint32 lowGuid)
+void ObjectMgr::DeletePlayerFromCache(uint32 uiGuid)
 {
-    auto itr = m_playerCacheData.find(lowGuid);
-    if (itr != m_playerCacheData.end())
+    PlayerCacheDataMap::iterator it = m_PlayerCacheData.find(uiGuid);
+    if (it != m_PlayerCacheData.end())
     {
-        auto itr2 = m_playerNameToGuid.find(itr->second->sName);
-        if (itr2 != m_playerNameToGuid.end())
-            m_playerNameToGuid.erase(itr2);
-        m_playerCacheData.erase(itr);
+        std::map<std::string, uint32>::iterator it2 = m_playerNameToGuid.find(it->second->sName);
+        if (it2 != m_playerNameToGuid.end())
+            m_playerNameToGuid.erase(it2);
+        m_PlayerCacheData.erase(it);
     }
 }
 
-void ObjectMgr::ChangePlayerNameInCache(uint32 guidLow, const std::string& oldName, const std::string& newName)
+void ObjectMgr::SavePlayerName(uint32 guidLow, const std::string& newName)
 {
-    auto itr = m_playerCacheData.find(guidLow);
-    if (itr != m_playerCacheData.end())
-    {
-        m_playerNameToGuid.erase(oldName);
-        m_playerNameToGuid[newName] = guidLow;
-        itr->second->sName = newName;
-    }
+    if (PlayerCacheData* pData = GetPlayerDataByGUID(guidLow))
+        pData->sName = newName;
 }
 
+// Fin Nostalrius
 Group* ObjectMgr::GetGroupById(uint32 id) const
 {
     GroupMap::const_iterator itr = mGroupMap.find(id);
@@ -2111,7 +2114,7 @@ void ObjectMgr::LoadItemPrototypes()
             const_cast<ItemPrototype*>(proto)->ItemSet = 0;
         }
 
-        if (proto->Area && !AreaEntry::GetById(proto->Area))
+        if (proto->Area && !GetAreaEntryByAreaID(proto->Area))
             sLog.outErrorDb("Item (Entry: %u) has wrong Area (%u)", i, proto->Area);
 
         if (proto->Map && !sMapStorage.LookupEntry<MapEntry>(proto->Map))
@@ -3340,7 +3343,7 @@ void ObjectMgr::LoadQuests()
         // client quest log visual (area case)
         if (qinfo->ZoneOrSort > 0)
         {
-            if (!AreaEntry::GetById(qinfo->ZoneOrSort))
+            if (!GetAreaEntryByAreaID(qinfo->ZoneOrSort))
             {
                 sLog.outErrorDb("Quest %u has `ZoneOrSort` = %u (zone case) but zone with this id does not exist.",
                                 qinfo->GetQuestId(), qinfo->ZoneOrSort);
@@ -4309,7 +4312,7 @@ void ObjectMgr::LoadMapTemplate()
     SQLMapLoader loader;
     loader.Load(sMapStorage);
 
-    for (auto itr = sMapStorage.begin<MapEntry>(); itr < sMapStorage.end<MapEntry>(); ++itr)
+    for (auto itr = sMapStorage.getDataBegin<MapEntry>(); itr < sMapStorage.getDataEnd<MapEntry>(); ++itr)
     {
         if (itr->IsDungeon() && itr->parent > 0)
         {
@@ -5014,14 +5017,14 @@ void ObjectMgr::LoadGraveyardZones()
             continue;
         }
 
-        const auto *areaEntry = AreaEntry::GetById(zoneId);
+        AreaTableEntry const *areaEntry = GetAreaEntryByAreaID(zoneId);
         if (!areaEntry)
         {
             sLog.outErrorDb("Table `game_graveyard_zone` has record for not existing zone id (%u), skipped.", zoneId);
             continue;
         }
 
-        if (!areaEntry->IsZone())
+        if (areaEntry->zone != 0)
         {
             sLog.outErrorDb("Table `game_graveyard_zone` has record subzone id (%u) instead of zone, skipped.", zoneId);
             continue;
@@ -5644,7 +5647,7 @@ void ObjectMgr::LoadGameobjectInfo()
 void ObjectMgr::CheckGameObjectInfos()
 {
     // some checks
-    for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+    for (auto itr = sGOStorage.getDataBegin<GameObjectInfo>(); itr < sGOStorage.getDataEnd<GameObjectInfo>(); ++itr)
     {
         if (itr->size <= 0.0f)                           // prevent use too small scales
         {
@@ -6809,7 +6812,7 @@ void ObjectMgr::LoadGameObjectForQuests()
     uint32 count = 0;
 
     // collect GO entries for GO that must activated
-    for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+    for (auto itr = sGOStorage.getDataBegin<GameObjectInfo>(); itr < sGOStorage.getDataEnd<GameObjectInfo>(); ++itr)
     {
         bar.step();
 
@@ -7120,7 +7123,7 @@ void ObjectMgr::LoadFishingBaseSkillLevel()
         uint32 entry  = fields[0].GetUInt32();
         int32 skill   = fields[1].GetInt32();
 
-        const auto *fArea = AreaEntry::GetById(entry);
+        AreaTableEntry const* fArea = GetAreaEntryByAreaID(entry);
         if (!fArea)
         {
             sLog.outErrorDb("AreaId %u defined in `skill_fishing_base_level` does not exist", entry);
@@ -7666,7 +7669,7 @@ void ObjectMgr::LoadGossipMenu()
                 if (m_mGossipMenusMap.find(cInfo->GossipMenuId) == m_mGossipMenusMap.end())
                     sLog.outErrorDb("Creature (Entry: %u) has gossip_menu_id = %u for nonexistent menu", cInfo->Entry, cInfo->GossipMenuId);
 
-    for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+    for (auto itr = sGOStorage.getDataBegin<GameObjectInfo>(); itr < sGOStorage.getDataEnd<GameObjectInfo>(); ++itr)
         if (uint32 menuid = itr->GetGossipMenuId())
             if (m_mGossipMenusMap.find(menuid) == m_mGossipMenusMap.end())
                 ERROR_DB_STRICT_LOG("Gameobject (Entry: %u) has gossip_menu_id = %u for nonexistent menu", itr->id, menuid);
@@ -7701,7 +7704,7 @@ void ObjectMgr::LoadGossipMenuItems()
             if (itr->first)
                 menu_ids.insert(itr->first);
 
-        for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+        for (auto itr = sGOStorage.getDataBegin<GameObjectInfo>(); itr < sGOStorage.getDataEnd<GameObjectInfo>(); ++itr)
             if (uint32 menuid = itr->GetGossipMenuId())
                 menu_ids.erase(menuid);
     }
@@ -8700,10 +8703,11 @@ bool PlayerCondition::Meets(Player const* player, Map const* map, WorldObject co
         case CONDITION_AREA_FLAG:
         {
             WorldObject const* searcher = source ? source : player;
-            if (const auto *pAreaEntry = AreaEntry::GetById(searcher->GetAreaId()))
-                if ((!m_value1 || (pAreaEntry->Flags & m_value1)) && (!m_value2 || !(pAreaEntry->Flags & m_value2)))
+            if (AreaTableEntry const* pAreaEntry = GetAreaEntryByAreaID(searcher->GetAreaId()))
+            {
+                if ((!m_value1 || (pAreaEntry->flags & m_value1)) && (!m_value2 || !(pAreaEntry->flags & m_value2)))
                     return true;
-
+            }
             return false;
         }
         case CONDITION_RACE_CLASS:
@@ -9071,7 +9075,7 @@ bool PlayerCondition::IsValid(uint16 entry, ConditionType condition, uint32 valu
         }
         case CONDITION_AREAID:
         {
-            const auto *areaEntry = AreaEntry::GetById(value1);
+            AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(value1);
             if (!areaEntry)
             {
                 sLog.outErrorDb("Zone condition (entry %u, type %u) requires to be in non existing area (%u), skipped", entry, condition, value1);
@@ -9354,6 +9358,8 @@ uint32 ObjectMgr::GenerateAuctionID()
 void ObjectMgr::FreeAuctionID(uint32 id)
 {
     m_AuctionsIds.erase(id);
+    if (!urand(0, 200))
+        m_NextAuctionId = 1;
 }
 
 void ObjectMgr::GeneratePetNumberRange(uint32& first, uint32& last)
@@ -9372,78 +9378,4 @@ void ObjectMgr::GeneratePetNumberRange(uint32& first, uint32& last)
         prev = nextGuid;
     }
     last = first + 1000;
-}
-
-void ObjectMgr::LoadAreaTemplate()
-{
-    sAreaStorage.Load();
-
-    for (auto itr = sAreaStorage.begin<AreaEntry>(); itr < sAreaStorage.end<AreaEntry>() ; ++itr)
-        if (itr->IsZone() && itr->MapId != 0 && itr->MapId != 1)
-            sAreaFlagByMapId.insert(AreaFlagByMapId::value_type(itr->MapId, itr->ExploreFlag));
-}
-
-void ObjectMgr::LoadAreaLocales()
-{
-    mAreaLocaleMap.clear();
-
-    QueryResult* result = WorldDatabase.Query("SELECT Entry, NameLoc1, NameLoc2, NameLoc3, NameLoc4, NameLoc5, NameLoc6, NameLoc7, NameLoc8 FROM locales_area");
-
-    if (!result)
-    {
-        BarGoLink bar(1);
-        bar.step();
-        sLog.outString(">> Loaded 0 area locale strings. DB table `locales_area` is empty.");
-        return;
-    }
-
-    BarGoLink bar(result->GetRowCount());
-
-    do
-    {
-        auto fields = result->Fetch();
-        bar.step();
-
-        auto entry = fields[0].GetUInt32();
-
-        if (!AreaEntry::GetById(entry))
-        {
-            ERROR_DB_STRICT_LOG("Table `locales_area` has data for nonexistent area entry %u, skipped.", entry);
-            continue;
-        }
-
-        AreaLocale& data = mAreaLocaleMap[entry];
-
-        for (uint8 i = 1; i < MAX_LOCALE; ++i)
-        {
-            auto str = fields[i].GetCppString();
-            if (!str.empty())
-            {
-                int8 idx = GetOrNewIndexForLocale(LocaleConstant(i));
-                if (idx >= 0)
-                {
-                    if ((int32)data.Name.size() <= idx)
-                        data.Name.resize(idx + 1);
-
-                    data.Name[idx] = str;
-                }
-            }
-        }
-    }
-    while (result->NextRow());
-
-    delete result;
-
-    sLog.outString(">> Loaded " SIZEFMTD " area locale strings", mAreaLocaleMap.size());
-    sLog.outString();
-}
-
-void ObjectMgr::GetAreaLocaleString(uint32 entry, int32 loc_idx, std::string* namePtr) const
-{
-    if (loc_idx >= 0)
-    {
-        if (const auto *al = GetAreaLocale(entry))
-            if (namePtr && al->Name.size() > size_t(loc_idx) && !al->Name[loc_idx].empty())
-                *namePtr = al->Name[loc_idx].c_str();
-    }
 }

@@ -413,8 +413,6 @@ void WorldSession::HandleCharDeleteOpcode(WorldPacket & recv_data)
     WorldPacket data(SMSG_CHAR_DELETE, 1);
     data << (uint8)CHAR_DELETE_SUCCESS;
     SendPacket(&data);
-
-    sWorld.LogCharacter(this, lowguid, name, "Delete");
 }
 
 void WorldSession::HandlePlayerLoginOpcode(WorldPacket & recv_data)
@@ -677,7 +675,7 @@ void WorldSession::HandlePlayerLogin(LoginQueryHolder *holder)
 
     // announce group about member online (must be after add to player list to receive announce to self)
     if (Group *group = pCurrChar->GetGroup())
-        group->UpdatePlayerOnlineStatus(pCurrChar);
+        group->SendUpdate();
 
     // friend status
     // TODO: Call it when node finished loading also
@@ -938,6 +936,4 @@ void WorldSession::HandleChangePlayerNameOpcodeCallBack(QueryResult *result, uin
     data << guid;
     data << newname;
     session->SendPacket(&data);
-
-    sObjectMgr.ChangePlayerNameInCache(guidLow, oldname, newname);
 }

@@ -432,25 +432,6 @@ void WorldSession::HandleCancelAuraOpcode(WorldPacket& recvPacket)
             return;
     }
 
-    // prevent last relocation opcode handling: CancelAura is handled before Mover is changed
-    // thus the last movement data is written into pMover, that should not happen
-    for (uint8 i = 0; i < MAX_EFFECT_INDEX; ++i)
-    {
-        // Eye of Kilrogg case
-        if (spellInfo->Effect[i] == SPELL_EFFECT_SUMMON_POSSESSED)
-        {
-            _player->SetNextRelocationsIgnoredCount(1);
-            break;
-        }
-
-        // Eyes of the Beast case
-        if (spellInfo->EffectApplyAuraName[i] == SPELL_AURA_MOD_POSSESS_PET)
-        {
-            _player->SetNextRelocationsIgnoredCount(3);
-            break;
-        }
-    }
-
     // channeled spell case (it currently casted then)
     if (IsChanneledSpell(spellInfo))
     {

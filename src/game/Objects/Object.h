@@ -133,8 +133,7 @@ enum ObjectSpawnFlags
     SPAWN_FLAG_DISABLED             = 0x02,
     SPAWN_FLAG_RANDOM_RESPAWN_TIME  = 0x04,
     SPAWN_FLAG_DYNAMIC_RESPAWN_TIME = 0x08,
-    SPAWN_FLAG_FORCE_DYNAMIC_ELITE  = 0x10, // creature only
-    SPAWN_FLAG_EVADE_OUT_HOME_AREA  = 0x20, // creature only
+    SPAWN_FLAG_FORCE_DYNAMIC_ELITE  = 0x10,
 };
 
 // [-ZERO] Need check and update
@@ -755,7 +754,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
 
         float GetAngle( const WorldObject* obj ) const;
         float GetAngle( const float x, const float y ) const;
-        bool HasInArc(const float arcangle, const WorldObject* obj, float offset = 0.0f) const;
+        bool HasInArc( const float arcangle, const WorldObject* obj ) const;
         bool HasInArc(const float arcangle, const float x, const float y) const;
         bool isInFrontInMap(WorldObject const* target,float distance, float arc = M_PI) const;
         bool isInBackInMap(WorldObject const* target, float distance, float arc = M_PI) const;
@@ -824,7 +823,7 @@ class MANGOS_DLL_SPEC WorldObject : public Object
         void PlayDirectSound(uint32 sound_id, Player* target = nullptr);
 
         void SendObjectDeSpawnAnim(ObjectGuid guid);
-        void SendGameObjectCustomAnim(ObjectGuid guid, uint32 animId = 0);
+        void SendGameObjectCustomAnim(ObjectGuid guid);
 
         virtual bool IsHostileTo(Unit const* unit) const =0;
         virtual bool IsFriendlyTo(Unit const* unit) const =0;

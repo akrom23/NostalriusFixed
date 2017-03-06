@@ -752,7 +752,8 @@ namespace MaNGOS
                     return false;
                 if(u->isAlive() && i_obj->IsWithinDistInMap(u, i_range) && !i_funit->IsFriendlyTo(u))
                     return true;
-                return false;
+                else
+                    return false;
             }
         private:
             WorldObject const* i_obj;
@@ -788,7 +789,8 @@ namespace MaNGOS
             {
                 if(u->isAlive() && i_obj->IsWithinDistInMap(u, i_range) && i_obj->IsFriendlyTo(u) && u->CanSeeInWorld(i_obj))
                     return true;
-                return false;
+                else
+                    return false;
             }
         private:
             WorldObject const* i_obj;

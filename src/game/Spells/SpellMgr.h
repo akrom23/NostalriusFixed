@@ -227,7 +227,7 @@ inline bool IsDeathOnlySpell(SpellEntry const *spellInfo)
 
 inline bool IsDeathPersistentSpell(SpellEntry const *spellInfo)
 {
-    return spellInfo->HasAttribute(SPELL_ATTR_EX3_DEATH_PERSISTENT);
+    return (spellInfo->AttributesEx3 & SPELL_ATTR_EX3_DEATH_PERSISTENT) || (spellInfo->Attributes & 0x80);
 }
 
 inline bool IsNonCombatSpell(SpellEntry const *spellInfo)
@@ -433,7 +433,7 @@ inline bool IsNeedCastSpellAtFormApply(SpellEntry const* spellInfo, ShapeshiftFo
 inline bool IsReflectableSpell(SpellEntry const* spellInfo)
 {
     return spellInfo->DmgClass == SPELL_DAMAGE_CLASS_MAGIC && !spellInfo->HasAttribute(SPELL_ATTR_IS_ABILITY)
-      && !spellInfo->HasAttribute(SPELL_ATTR_EX_CANT_BE_REFLECTED) && !spellInfo->HasAttribute(SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
+      && !spellInfo->HasAttribute(SPELL_ATTR_EX_NEGATIVE) && !spellInfo->HasAttribute(SPELL_ATTR_UNAFFECTED_BY_INVULNERABILITY)
       && !spellInfo->HasAttribute(SPELL_ATTR_PASSIVE) && !IsPositiveSpell(spellInfo);
 }
 

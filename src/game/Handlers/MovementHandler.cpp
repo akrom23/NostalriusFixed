@@ -73,7 +73,7 @@ void WorldSession::HandleMoveWorldportAckOpcode()
     // get the destination map entry, not the current one, this will fix homebind and reset greeting
     MapEntry const* mEntry = sMapStorage.LookupEntry<MapEntry>(loc.mapid);
 
-    Map* map = nullptr;
+    Map* map = NULL;
 
     // prevent crash at attempt landing to not existed battleground instance
     if (mEntry->IsBattleGround())
@@ -564,19 +564,12 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
     Unit *mover = _player->GetMover();
     movementInfo.CorrectData(mover);
 
-    if (Player* plMover = mover->ToPlayer())
+    if (Player *plMover = mover->GetTypeId() == TYPEID_PLAYER ? (Player*)mover : NULL)
     {
-        // ignore current relocation if needed
-        if (plMover->IsNextRelocationIgnored())
-        {
-            plMover->DoIgnoreRelocation();
-            return;
-        }
-
         if (movementInfo.HasMovementFlag(MOVEFLAG_ONTRANSPORT))
         {
             GetPlayer()->GetCheatData()->OnTransport(plMover, movementInfo.GetTransportGuid());
-            Unit* loadPetOnTransport = nullptr;
+            Unit* loadPetOnTransport = NULL;
             if (!plMover->GetTransport())
                 if (Transport* t = plMover->GetMap()->GetTransport(movementInfo.GetTransportGuid()))
                 {
@@ -623,7 +616,7 @@ void WorldSession::HandleMoverRelocation(MovementInfo& movementInfo)
         plMover->SetPosition(movementInfo.GetPos()->x, movementInfo.GetPos()->y, movementInfo.GetPos()->z, movementInfo.GetPos()->o);
         plMover->m_movementInfo = movementInfo;
 
-        // super smart decision; rework required
+        // Fermeture fenetre loot en cas de mvt.
         if (ObjectGuid lootGuid = plMover->GetLootGuid())
             plMover->SendLootRelease(lootGuid);
 

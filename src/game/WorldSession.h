@@ -443,7 +443,8 @@ class MANGOS_DLL_SPEC WorldSession
         uint32 GetAccountMaxLevel() const { return _characterMaxLevel; }
         void SetAccountMaxLevel(uint32 l) { _characterMaxLevel = l; }
 
-        bool IsReplaying() const { return _pcktReading != nullptr; }
+        // Nostalrius
+        bool IsReplaying() const { return _pcktReading != NULL; }
         ObjectGuid GetRecorderGuid() const { return _recorderGuid; }
         void ReplaySkipTime(int32 delay) { _pcktReadTimer += delay; }
         void SetReplaySpeedRate(float r) { _pcktReadSpeedRate = r; }
@@ -962,8 +963,8 @@ class MANGOS_DLL_SPEC WorldSession
         void SetMasterSession(NodeSession* s) { m_masterSession = s; }
         NodeSession* GetNodeSession() const { return m_nodeSession; }
         void SetNodeSession(NodeSession* s) { m_nodeSession = s; }
-        bool IsNode() const { return m_nodeSession == nullptr; }
-        bool IsMaster() const { return m_masterSession == nullptr; }
+        bool IsNode() const { return m_nodeSession == NULL; }
+        bool IsMaster() const { return m_masterSession == NULL; }
         MasterPlayer* GetMasterPlayer() const { return m_masterPlayer; }
         PlayerPointer GetPlayerPointer() const
         {
@@ -971,7 +972,7 @@ class MANGOS_DLL_SPEC WorldSession
                 return PlayerPointer(new PlayerWrapper<Player>(_player));
             if (GetMasterPlayer())
                 return PlayerPointer(new PlayerWrapper<MasterPlayer>(GetMasterPlayer()));
-            return PlayerPointer(nullptr);
+            return PlayerPointer(NULL);
         }
 
         /**

@@ -2935,7 +2935,7 @@ bool ChatHandler::HandleLookupObjectCommand(char* args)
 
     uint32 counter = 0;
 
-    for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+    for (auto itr = sGOStorage.getDataBegin<GameObjectInfo>(); itr < sGOStorage.getDataEnd<GameObjectInfo>(); ++itr)
     {
         int loc_idx = GetSessionDbLocaleIndex();
         if (loc_idx >= 0)
@@ -3466,8 +3466,8 @@ bool ChatHandler::HandleLinkGraveCommand(char* args)
 
     uint32 zoneId = player->GetZoneId();
 
-    const auto *areaEntry = AreaEntry::GetById(zoneId);
-    if (!areaEntry || !areaEntry->IsZone())
+    AreaTableEntry const *areaEntry = GetAreaEntryByAreaID(zoneId);
+    if (!areaEntry || areaEntry->zone != 0)
     {
         PSendSysMessage(LANG_COMMAND_GRAVEYARDWRONGZONE, g_id, zoneId);
         SetSentErrorMessage(true);
@@ -3906,7 +3906,7 @@ bool ChatHandler::HandleShowAreaCommand(char* args)
         return false;
     }
 
-    int area = AreaEntry::GetFlagById(atoi(args));
+    int area = GetAreaFlagByAreaID(atoi(args));
     int offset = area / 32;
     uint32 val = (uint32)(1 << (area % 32));
 
@@ -3937,7 +3937,7 @@ bool ChatHandler::HandleHideAreaCommand(char* args)
         return false;
     }
 
-    int area = AreaEntry::GetFlagById(atoi(args));
+    int area = GetAreaFlagByAreaID(atoi(args));
     int offset = area / 32;
     uint32 val = (uint32)(1 << (area % 32));
 
@@ -5893,7 +5893,7 @@ bool ChatHandler::HandleInstanceUnbindCommand(char* args)
             if (const MapEntry* entry = sMapStorage.LookupEntry<MapEntry>(itr->first))
             {
                 PSendSysMessage("unbinding map: %d (%s) inst: %d perm: %s canReset: %s TTR: %s",
-                                itr->first, entry->name, save->GetInstanceId(), itr->second.perm ? "yes" : "no",
+                                itr->first, entry->name[GetSessionDbcLocale()], save->GetInstanceId(), itr->second.perm ? "yes" : "no",
                                 save->CanReset() ? "yes" : "no", timeleft.c_str());
             }
             else
@@ -6464,9 +6464,6 @@ bool ChatHandler::HandleDebugMoveCommand(char* args)
         case 3:
             target->GetMotionMaster()->MoveFleeing(m_session->GetPlayer());
             break;
-        case 4:
-            target->GetMotionMaster()->MoveFeared(m_session->GetPlayer());
-            break;
     }
     SendSysMessage("Debug Move.");
     return true;
@@ -6626,11 +6623,8 @@ bool ChatHandler::HandleSpamerMute(char* args)
 
     if (Player* player = ObjectAccessor::FindPlayerByName(cname))
     {
-        if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-        {
-            a->mute(player->GetSession()->GetAccountId());
-            PSendSysMessage("Spamer %s was muted", cname);
-        }
+        sAnticheatLib->mute(player->GetSession()->GetPlayerPointer());
+        PSendSysMessage("Spamer %s was muted", cname);
     }
 
     return true;
@@ -6647,11 +6641,8 @@ bool ChatHandler::HandleSpamerUnmute(char* args)
 
     if (Player* player = ObjectAccessor::FindPlayerByName(cname))
     {
-        if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-        {
-            a->unmute(player->GetSession()->GetAccountId());
-            PSendSysMessage("Spamer %s was unmuted", cname);
-        }
+        sAnticheatLib->unmute(player->GetSession()->GetPlayerPointer());
+        PSendSysMessage("Spamer %s was unmuted", cname);
     }
 
     return true;
@@ -6659,7 +6650,6 @@ bool ChatHandler::HandleSpamerUnmute(char* args)
 
 bool ChatHandler::HandleSpamerList(char* args)
 {
-    if (AntispamInterface *a = sAnticheatLib->GetAntispam())
-        a->showMuted(GetSession());
+    sAnticheatLib->showMuted(GetSession());
     return true;
 }

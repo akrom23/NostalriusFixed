@@ -36,7 +36,6 @@
 #include "Mail.h"
 #include "Util.h"
 #include "Anticheat.h"
-#include "SQLStorages.h"
 #ifdef _DEBUG_VMAPS
 #include "VMapFactory.h"
 #endif
@@ -293,8 +292,8 @@ bool ChatHandler::HandleGPSCommand(char* args)
     obj->GetZoneAndAreaId(zone_id, area_id);
 
     MapEntry const* mapEntry = sMapStorage.LookupEntry<MapEntry>(obj->GetMapId());
-    const auto *zoneEntry = AreaEntry::GetById(zone_id);
-    const auto *areaEntry = AreaEntry::GetById(area_id);
+    AreaTableEntry const* zoneEntry = GetAreaEntryByAreaID(zone_id);
+    AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(area_id);
 
     float zone_x = obj->GetPositionX();
     float zone_y = obj->GetPositionY();
@@ -327,24 +326,10 @@ bool ChatHandler::HandleGPSCommand(char* args)
     }
     else PSendSysMessage("no VMAP available for area info");
 
-    std::string zoneName = "<unknown>";
-    std::string areaName = "<unknown>";
-
-    if (zoneEntry)
-    {
-        zoneName = zoneEntry->Name;
-        sObjectMgr.GetAreaLocaleString(zoneEntry->Id, GetSessionDbLocaleIndex(), &zoneName);
-    }
-
-    if (areaEntry)
-    {
-        areaName = areaEntry->Name;
-        sObjectMgr.GetAreaLocaleString(areaEntry->Id, GetSessionDbLocaleIndex(), &areaName);
-    }
-
     PSendSysMessage(LANG_MAP_POSITION,
                     obj->GetMapId(), (mapEntry ? mapEntry->name : "<unknown>"),
-                    zone_id, zoneName.c_str(), area_id, areaName.c_str(),
+                    zone_id, (zoneEntry ? zoneEntry->area_name[GetSessionDbcLocale()] : "<unknown>"),
+                    area_id, (areaEntry ? areaEntry->area_name[GetSessionDbcLocale()] : "<unknown>"),
                     obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
                     cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
                     zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
@@ -354,15 +339,10 @@ bool ChatHandler::HandleGPSCommand(char* args)
               (obj->GetTypeId() == TYPEID_PLAYER ? "player" : "creature"), obj->GetName(),
               (obj->GetTypeId() == TYPEID_PLAYER ? "GUID" : "Entry"), (obj->GetTypeId() == TYPEID_PLAYER ? obj->GetGUIDLow() : obj->GetEntry()));
 
-    if (zoneEntry)
-        sObjectMgr.GetAreaLocaleString(zoneEntry->Id, sWorld.GetDefaultDbcLocale(), &zoneName);
-
-    if (areaEntry)
-        sObjectMgr.GetAreaLocaleString(areaEntry->Id, sWorld.GetDefaultDbcLocale(), &areaName);
-
     DEBUG_LOG(GetMangosString(LANG_MAP_POSITION),
               obj->GetMapId(), (mapEntry ? mapEntry->name : "<unknown>"),
-              zone_id, zoneName.c_str(), area_id, areaName.c_str(),
+              zone_id, (zoneEntry ? zoneEntry->area_name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
+              area_id, (areaEntry ? areaEntry->area_name[sWorld.GetDefaultDbcLocale()] : "<unknown>"),
               obj->GetPositionX(), obj->GetPositionY(), obj->GetPositionZ(), obj->GetOrientation(),
               cell.GridX(), cell.GridY(), cell.CellX(), cell.CellY(), obj->GetInstanceId(),
               zone_x, zone_y, ground_z, floor_z, have_map, have_vmap);
@@ -1498,28 +1478,48 @@ bool ChatHandler::HandleLookupAreaCommand(char* args)
     // converting string that we try to find to lower case
     wstrToLower(wnamepart);
 
-    for (auto itr = sAreaStorage.begin<AreaEntry>(); itr < sAreaStorage.end<AreaEntry>(); ++itr)
+    // Search in AreaTable.dbc
+    for (uint32 areaid = 0; areaid <= sAreaStore.GetNumRows(); ++areaid)
     {
-        std::string name = itr->Name;
-
-        if (!Utf8FitTo(name, wnamepart))
+        AreaTableEntry const *areaEntry = sAreaStore.LookupEntry(areaid);
+        if (areaEntry)
         {
-            sObjectMgr.GetAreaLocaleString(itr->Id, GetSessionDbLocaleIndex(), &name);
-            if (!Utf8FitTo(name, wnamepart))
+            int loc = GetSessionDbcLocale();
+            std::string name = areaEntry->area_name[loc];
+            if (name.empty())
                 continue;
+
+            if (!Utf8FitTo(name, wnamepart))
+            {
+                loc = 0;
+                for (; loc < MAX_DBC_LOCALE; ++loc)
+                {
+                    if (loc == GetSessionDbcLocale())
+                        continue;
+
+                    name = areaEntry->area_name[loc];
+                    if (name.empty())
+                        continue;
+
+                    if (Utf8FitTo(name, wnamepart))
+                        break;
+                }
+            }
+
+            if (loc < MAX_DBC_LOCALE)
+            {
+                // send area in "id - [name]" format
+                std::ostringstream ss;
+                if (m_session)
+                    ss << areaEntry->ID << " - |cffffffff|Harea:" << areaEntry->ID << "|h[" << name << " " << localeNames[loc] << "]|h|r";
+                else
+                    ss << areaEntry->ID << " - " << name << " " << localeNames[loc];
+
+                SendSysMessage(ss.str().c_str());
+
+                ++counter;
+            }
         }
-
-        int locale = GetSessionDbLocaleIndex() + 1;
-        // send area in "id - [name]" format
-        std::ostringstream ss;
-        if (m_session)
-            ss << itr->Id << " - |cffffffff|Harea:" << itr->Id << "|h[" << name << " " << localeNames[locale] << "]|h|r";
-        else
-            ss << itr->Id << " - " << name << " " << localeNames[locale];
-
-        SendSysMessage(ss.str().c_str());
-
-        ++counter;
     }
 
     if (counter == 0)                                      // if counter == 0 then we found nth
@@ -2036,7 +2036,7 @@ bool ChatHandler::HandleGoZoneXYCommand(char* args)
     else
         areaid = _player->GetZoneId();
 
-    const auto *areaEntry = AreaEntry::GetById(areaid);
+    AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(areaid);
 
     if (x < 0 || x > 100 || y < 0 || y > 100 || !areaEntry)
     {
@@ -2046,23 +2046,21 @@ bool ChatHandler::HandleGoZoneXYCommand(char* args)
     }
 
     // update to parent zone if exist (client map show only zones without parents)
-    const auto *zoneEntry = !areaEntry->IsZone() ? AreaEntry::GetById(areaEntry->ZoneId) : areaEntry;
+    AreaTableEntry const* zoneEntry = areaEntry->zone ? GetAreaEntryByAreaID(areaEntry->zone) : areaEntry;
 
-    MapEntry const *mapEntry = sMapStorage.LookupEntry<MapEntry>(zoneEntry->MapId);
+    MapEntry const *mapEntry = sMapStorage.LookupEntry<MapEntry>(zoneEntry->mapid);
 
-    std::string areaName = areaEntry->Name;
-    sObjectMgr.GetAreaLocaleString(areaEntry->Id, GetSessionDbLocaleIndex(), &areaName);
     if (mapEntry->Instanceable())
     {
-        PSendSysMessage(LANG_INVALID_ZONE_MAP, areaEntry->Id, areaName.c_str(),
+        PSendSysMessage(LANG_INVALID_ZONE_MAP, areaEntry->ID, areaEntry->area_name[GetSessionDbcLocale()],
                         mapEntry->id, mapEntry->name);
         SetSentErrorMessage(true);
         return false;
     }
 
-    if (!Zone2MapCoordinates(x, y, zoneEntry->Id))
+    if (!Zone2MapCoordinates(x, y, zoneEntry->ID))
     {
-        PSendSysMessage(LANG_INVALID_ZONE_MAP, areaEntry->Id, areaName.c_str(),
+        PSendSysMessage(LANG_INVALID_ZONE_MAP, areaEntry->ID, areaEntry->area_name[GetSessionDbcLocale()],
                         mapEntry->id, mapEntry->name);
         SetSentErrorMessage(true);
         return false;

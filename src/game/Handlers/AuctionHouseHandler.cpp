@@ -413,18 +413,10 @@ void WorldSession::HandleAuctionPlaceBid(WorldPacket & recv_data)
     AuctionEntry *auction = auctionHouse->GetAuction(auctionId);
     Player *pl = GetPlayer();
 
-    if (!auction)
-    {
-        // item not found; auction may have expired, or been bought out
-        SendAuctionCommandResult(nullptr, AUCTION_BID_PLACED, AUCTION_ERR_ITEM_NOT_FOUND);
-
-        return;
-    }
-
-    if (auction->owner == pl->GetGUIDLow())
+    if (!auction || auction->owner == pl->GetGUIDLow())
     {
         // you cannot bid your own auction:
-        SendAuctionCommandResult(nullptr, AUCTION_BID_PLACED, AUCTION_ERR_BID_OWN);
+        SendAuctionCommandResult(NULL, AUCTION_BID_PLACED, AUCTION_ERR_BID_OWN);
         return;
     }
 
@@ -644,13 +636,10 @@ void WorldSession::HandleAuctionListBidderItems(WorldPacket & recv_data)
         uint32 outbiddedAuctionId;
         recv_data >> outbiddedAuctionId;
         AuctionEntry *auction = auctionHouse->GetAuction(outbiddedAuctionId);
-        if (auction)
+        if (auction && auction->BuildAuctionInfo(data))
         {
             ++totalcount;
-
-            if (count < 50 && totalcount > listfrom)
-                if (auction->BuildAuctionInfo(data))
-                    ++count;
+            ++count;
         }
     }
 

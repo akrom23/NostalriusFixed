@@ -496,9 +496,9 @@ bool Loot::FillLoot(uint32 loot_id, LootStore const& store, Player* loot_owner, 
     return true;
 }
 
-bool Loot::IsAllowedLooter(ObjectGuid guid, bool doPersonalCheck) const
+bool Loot::IsAllowedLooter(ObjectGuid guid) const
 {
-    if (doPersonalCheck && _personal)
+    if (_personal)
         return true;
 
     for (std::vector<ObjectGuid>::const_iterator it = _allowedLooters.begin(); it != _allowedLooters.end(); ++it)
@@ -509,9 +509,6 @@ bool Loot::IsAllowedLooter(ObjectGuid guid, bool doPersonalCheck) const
 
 void Loot::FillNotNormalLootFor(Player* pl)
 {
-    if (pl->IsInWorld())
-        _allowedLooters.push_back(pl->GetObjectGuid());
-    
     uint32 plguid = pl->GetGUIDLow();
 
     QuestItemMap::const_iterator qmapitr = m_playerQuestItems.find(plguid);
@@ -1364,9 +1361,13 @@ void LoadLootTemplates_Fishing()
     LootIdSet ids_set;
     LootTemplates_Fishing.LoadAndCollectLootIds(ids_set);
 
-    for (auto itr = sAreaStorage.begin<AreaEntry>(); itr < sAreaStorage.end<AreaEntry>(); ++itr)
-        if (ids_set.find(itr->Id) != ids_set.end())
-                ids_set.erase(itr->Id);
+    // remove real entries and check existence loot
+    for (uint32 i = 1; i < sAreaStore.GetNumRows(); ++i)
+    {
+        if (AreaTableEntry const* areaEntry = sAreaStore.LookupEntry(i))
+            if (ids_set.find(areaEntry->ID) != ids_set.end())
+                ids_set.erase(areaEntry->ID);
+    }
 
     // by default (look config options) fishing at fail provide junk loot, entry 0 use for store this loot
     ids_set.erase(0);
@@ -1381,7 +1382,7 @@ void LoadLootTemplates_Gameobject()
     LootTemplates_Gameobject.LoadAndCollectLootIds(ids_set);
 
     // remove real entries and check existence loot
-    for (auto itr = sGOStorage.begin<GameObjectInfo>(); itr < sGOStorage.end<GameObjectInfo>(); ++itr)
+    for (auto itr = sGOStorage.getDataBegin<GameObjectInfo>(); itr < sGOStorage.getDataEnd<GameObjectInfo>(); ++itr)
     {
         if (uint32 lootid = itr->GetLootId())
         {

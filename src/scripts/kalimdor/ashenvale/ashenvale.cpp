@@ -47,14 +47,9 @@ enum
     SAY_MUG_PATROL          = -1000509,
     SAY_MUG_RETURN          = -1000510,
 
-    SAY_MUG_Q_COMPETENCE    = -1780221,
-    SAY_MUG_IMPATIENT       = -1780222,
-
     QUEST_VORSHA            = 6641,
 
     GO_NAGA_BRAZIER         = 178247,
-    GO_BRAZIER_GUID         = 47873,
-
     NPC_MUGLASH             = 12717,
 
     NPC_WRATH_RIDER         = 3713,
@@ -89,7 +84,6 @@ struct npc_muglashAI : public npc_escortAI
     npc_muglashAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
         m_uiWaveId = 0;
-        muglashImpatience = 0;
         m_bIsBrazierExtinguished = false;
         Reset();
     }
@@ -97,15 +91,11 @@ struct npc_muglashAI : public npc_escortAI
     bool m_bIsBrazierExtinguished;
 
     uint32 m_uiWaveId;
-    uint32 muglashImpatience;
     uint32 m_uiEventTimer;
-    uint32 impatienceTimer;
 
     void Reset()
     {
         m_uiEventTimer = 10000;
-        impatienceTimer = 30000;
-        muglashImpatience = 0;
 
         if (!HasEscortState(STATE_ESCORT_ESCORTING))
         {
@@ -177,11 +167,8 @@ struct npc_muglashAI : public npc_escortAI
                 m_creature->SummonCreature(NPC_VORSHA, m_fVorshaCoord[0], m_fVorshaCoord[1], m_fVorshaCoord[2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
                 break;
             case 4:
-                DoScriptText(SAY_MUG_DONE, m_creature);
-                m_creature->HandleEmote(EMOTE_ONESHOT_CHEER);
-                break;
-            case 5:
                 SetEscortPaused(false);
+                DoScriptText(SAY_MUG_DONE, m_creature);
                 break;
         }
     }
@@ -195,62 +182,16 @@ struct npc_muglashAI : public npc_escortAI
     {
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
         {
-            if (HasEscortState(STATE_ESCORT_PAUSED))
+            if (HasEscortState(STATE_ESCORT_PAUSED) && m_bIsBrazierExtinguished)
             {
-                if (m_bIsBrazierExtinguished)
+                if (m_uiEventTimer < uiDiff)
                 {
-                    if (m_uiEventTimer < uiDiff)
-                    {
-                        ++m_uiWaveId;
-                        DoWaveSummon();
-
-                        switch(m_uiWaveId)
-                        {
-                            case 3:
-                                m_uiEventTimer = 0;
-                                break;
-                            case 4:
-                                m_uiEventTimer = 2000;
-                                break;
-                            default:
-                                m_uiEventTimer = 9000;
-                        }
-                    }
-                    else
-                        m_uiEventTimer -= uiDiff;
+                    ++m_uiWaveId;
+                    DoWaveSummon();
+                    m_uiEventTimer = 10000;
                 }
                 else
-                {
-                    if (impatienceTimer < uiDiff)
-                    {
-                        muglashImpatience++;
-
-                        if (1 == muglashImpatience)
-                        {
-                            DoScriptText(SAY_MUG_Q_COMPETENCE, m_creature);
-                            impatienceTimer = 30000;
-                        }
-                        else if (2 == muglashImpatience)
-                        {
-                            DoScriptText(SAY_MUG_IMPATIENT, m_creature);
-
-                            // Reset brazier to no interact
-                            if (GameObject* pGo = GetClosestGameObjectWithEntry(m_creature, GO_NAGA_BRAZIER, INTERACTION_DISTANCE * 2))
-                                pGo->SetFlag(GAMEOBJECT_FLAGS, GO_FLAG_NO_INTERACT);
-
-                            impatienceTimer = 3000;
-                        }
-                        else
-                        {
-                            // Muglash too impatient. Fail quest and reset.
-                            JustDied(nullptr);
-                            ResetEscort();
-                        }
-
-                    }
-                    else
-                        impatienceTimer -= uiDiff;
-                }
+                    m_uiEventTimer -= uiDiff;
             }
 
             return;
@@ -271,11 +212,6 @@ bool QuestAccept_npc_muglash(Player* pPlayer, Creature* pCreature, const Quest* 
 
             pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
         }
-
-        // Ensure Brazier can be extinguished
-        if (GameObject* go_naga_brazier = GetClosestGameObjectWithEntry(pCreature, GO_NAGA_BRAZIER, 1000))
-            go_naga_brazier->ResetDoorOrButton();
-
     }
 
     return true;

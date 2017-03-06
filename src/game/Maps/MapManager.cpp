@@ -57,7 +57,7 @@ MapManager::Initialize()
 {
     InitStateMachine();
     InitMaxInstanceId();
-    for (auto itr = sMapStorage.begin<MapEntry>(); itr < sMapStorage.end<MapEntry>(); ++itr)
+    for (auto itr = sMapStorage.getDataBegin<MapEntry>(); itr < sMapStorage.getDataEnd<MapEntry>(); ++itr)
     {
         bool load = false;
         if (itr->IsContinent() && sWorld.getConfig(CONFIG_BOOL_TERRAIN_PRELOAD_CONTINENTS))
@@ -201,7 +201,7 @@ bool MapManager::CanPlayerEnter(uint32 mapid, Player* player)
         uint32 instanceId = state ? state->GetInstanceId() : 0;
         if (!player->CheckInstanceCount(instanceId))
         {
-            DEBUG_LOG("MAP: Player '%s' can't enter instance %u on map %u. Has already entered too many instances.", player->GetName(), instanceId, mapid);
+            DEBUG_LOG("MAP: Player '%s' can't enter instance %u on map %u. Has already entered too many instances.", player->GetName(), state->GetInstanceId(), mapid);
             player->SendTransferAborted(mapid, TRANSFER_ABORT_TOO_MANY_INSTANCES, 0);
             return false;
         }

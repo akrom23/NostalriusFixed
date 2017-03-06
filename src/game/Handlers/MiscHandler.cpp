@@ -47,15 +47,13 @@
 #include "MasterPlayer.h"
 #include "GossipDef.h"
 
-void WorldSession::HandleRepopRequestOpcode(WorldPacket & /*recv_data*/)
+void WorldSession::HandleRepopRequestOpcode(WorldPacket & recv_data)
 {
     DEBUG_LOG("WORLD: Recvd CMSG_REPOP_REQUEST Message");
 
     // recv_data.read_skip<uint8>(); client crash
 
-    auto player = GetPlayer();
-
-    if (player->isAlive() || player->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
+    if (GetPlayer()->isAlive() || GetPlayer()->HasFlag(PLAYER_FLAGS, PLAYER_FLAGS_GHOST))
         return;
 
     // the world update order is sessions, players, creatures
@@ -63,20 +61,16 @@ void WorldSession::HandleRepopRequestOpcode(WorldPacket & /*recv_data*/)
     // creatures can kill players
     // so if the server is lagging enough the player can
     // release spirit after he's killed but before he is updated
-    if (player->getDeathState() == JUST_DIED)
+    if (GetPlayer()->getDeathState() == JUST_DIED)
     {
-        DEBUG_LOG("HandleRepopRequestOpcode: got request after player %s(%d) was killed and before he was updated", player->GetName(), player->GetGUIDLow());
-        player->KillPlayer();
+        DEBUG_LOG("HandleRepopRequestOpcode: got request after player %s(%d) was killed and before he was updated", GetPlayer()->GetName(), GetPlayer()->GetGUIDLow());
+        GetPlayer()->KillPlayer();
     }
 
-    // Waiting to Resurrect (probably redundant cast, yet to check thoroughly)
-    if (player->InBattleGround())
-        player->CastSpell(player, 2584, true);
-
     //this is spirit release confirm?
-    player->RemovePet(PET_SAVE_REAGENTS);
-    player->BuildPlayerRepop();
-    player->RepopAtGraveyard();
+    GetPlayer()->RemovePet(PET_SAVE_REAGENTS);
+    GetPlayer()->BuildPlayerRepop();
+    GetPlayer()->RepopAtGraveyard();
 }
 
 class WhoListClientQueryTask: public AsyncTask
@@ -180,11 +174,8 @@ public:
                 continue;
 
             std::string aname;
-            if (const auto *areaEntry = AreaEntry::GetById(pzoneid))
-            {
-                aname = areaEntry->Name;
-                sObjectMgr.GetAreaLocaleString(areaEntry->Id, sess->GetSessionDbLocaleIndex(), &aname);
-            }
+            if (AreaTableEntry const* areaEntry = GetAreaEntryByAreaID(pzoneid))
+                aname = areaEntry->area_name[sess->GetSessionDbcLocale()];
 
             bool s_show = true;
             for (uint32 i = 0; i < str_count; ++i)
@@ -1238,12 +1229,10 @@ void WorldSession::HandleCancelMountAuraOpcode(WorldPacket & /*recv_data*/)
 
 void WorldSession::HandleRequestPetInfoOpcode(WorldPacket & /*recv_data */)
 {
-    DEBUG_LOG("WORLD: CMSG_REQUEST_PET_INFO");
-
-    if (_player->GetPet())
-        _player->PetSpellInitialize();
-    else if (_player->GetCharm())
-        _player->CharmSpellInitialize();
+    /*
+        DEBUG_LOG("WORLD: CMSG_REQUEST_PET_INFO");
+        recv_data.hexlike();
+    */
 }
 
 void WorldSession::HandleSetTaxiBenchmarkOpcode(WorldPacket & recv_data)

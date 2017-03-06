@@ -34,7 +34,7 @@ void AddSC_npc_king_gordok();
 
 //world
 void AddSC_areatrigger_scripts();
-void AddSC_dragons_of_nightmare();
+void AddSC_boss_green_drake();
 void AddSC_boss_lord_kazzak();
 void AddSC_generic_creature();
 void AddSC_go_scripts();
@@ -180,7 +180,6 @@ void AddSC_boss_venoxis();
 void AddSC_boss_wushoolay();
 void AddSC_instance_zulgurub();
 void AddSC_zg_trash();
-void AddSC_boss_omen();
 
 //void AddSC_alterac_mountains();
 void AddSC_arathi_highlands();
@@ -197,7 +196,6 @@ void AddSC_redridge_mountains();
 void AddSC_searing_gorge();
 void AddSC_silverpine_forest();
 void AddSC_stormwind_city();
-void AddSC_quest_stormwind_rendezvous();
 void AddSC_stranglethorn_vale();
 void AddSC_swamp_of_sorrows();
 void AddSC_tirisfal_glades();
@@ -214,7 +212,6 @@ void AddSC_boss_celebras_the_cursed();               //maraudon
 void AddSC_boss_landslide();
 void AddSC_boss_noxxion();
 void AddSC_boss_ptheradras();
-void AddSC_maraudon();
 void AddSC_boss_onyxia();                            //onyxias_lair
 void AddSC_boss_amnennar_the_coldbringer();          //razorfen_downs
 void AddSC_razorfen_downs();
@@ -300,7 +297,7 @@ void AddScripts()
 
     //world
     AddSC_areatrigger_scripts();
-    AddSC_dragons_of_nightmare();
+    AddSC_boss_green_drake();
     AddSC_boss_lord_kazzak();
     AddSC_generic_creature();
     AddSC_go_scripts();
@@ -444,7 +441,6 @@ void AddScripts()
     AddSC_boss_wushoolay();
     AddSC_instance_zulgurub();
     AddSC_zg_trash();
-    AddSC_boss_omen();
 
     //AddSC_alterac_mountains();
     AddSC_arathi_highlands();
@@ -461,7 +457,6 @@ void AddScripts()
     AddSC_searing_gorge();
     AddSC_silverpine_forest();
     AddSC_stormwind_city();
-    AddSC_quest_stormwind_rendezvous();
     AddSC_stranglethorn_vale();
     AddSC_swamp_of_sorrows();
     AddSC_tirisfal_glades();
@@ -478,7 +473,6 @@ void AddScripts()
     AddSC_boss_landslide();
     AddSC_boss_noxxion();
     AddSC_boss_ptheradras();
-    AddSC_maraudon();
     AddSC_boss_onyxia();                                    //onyxias_lair
     AddSC_boss_amnennar_the_coldbringer();                  //razorfen_downs
     AddSC_razorfen_downs();

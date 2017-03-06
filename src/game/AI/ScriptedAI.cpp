@@ -13,17 +13,8 @@
 ScriptedAI::ScriptedAI(Creature* pCreature) : CreatureAI(pCreature),
     me(pCreature),
     m_bCombatMovement(true),
-    m_uiEvadeCheckCooldown(2500),
-    m_uiHomeArea(m_creature->GetAreaId())
-{
-    m_bEvadeOutOfHomeArea = false;
-
-    if (auto cData = m_creature->GetCreatureData())
-    {
-        if (cData->spawnFlags & SPAWN_FLAG_EVADE_OUT_HOME_AREA)
-            m_bEvadeOutOfHomeArea = true;
-    }
-}
+    m_uiEvadeCheckCooldown(2500)
+{}
 
 void ScriptedAI::MoveInLineOfSight(Unit* pWho)
 {
@@ -92,7 +83,7 @@ void ScriptedAI::EnterEvadeMode()
     if (m_creature->isAlive())
         m_creature->GetMotionMaster()->MoveTargetedHome();
 
-    m_creature->SetLootRecipient(nullptr);
+    m_creature->SetLootRecipient(NULL);
 
     Reset();
 }
@@ -100,7 +91,6 @@ void ScriptedAI::EnterEvadeMode()
 void ScriptedAI::JustRespawned()
 {
     Reset();
-    ResetCreature();
 }
 
 void ScriptedAI::DoStartMovement(Unit* pVictim, float fDistance, float fAngle)
@@ -155,7 +145,7 @@ Creature* ScriptedAI::DoSpawnCreature(uint32 id, float dist, uint32 type, uint32
 {
     float x, y, z;
     m_creature->GetPosition(x, y, z);
-    m_creature->GetMap()->GetWalkRandomPosition(nullptr, x, y, z, dist);
+    m_creature->GetMap()->GetWalkRandomPosition(NULL, x, y, z, dist);
     return m_creature->SummonCreature(id, x, y, z, m_creature->GetAngle(x, y) + M_PI, (TempSummonType)type, despawntime);
 }
 
@@ -163,11 +153,11 @@ SpellEntry const* ScriptedAI::SelectSpell(Unit* pTarget, int32 uiSchool, int32 u
 {
     //No target so we can't cast
     if (!pTarget)
-        return nullptr;
+        return NULL;
 
     //Silenced so we can't cast
     if (m_creature->HasFlag(UNIT_FIELD_FLAGS, UNIT_FLAG_SILENCED))
-        return nullptr;
+        return NULL;
 
     //Using the extended script system we first create a list of viable spells
     SpellEntry const* apSpell[4];
@@ -242,7 +232,7 @@ SpellEntry const* ScriptedAI::SelectSpell(Unit* pTarget, int32 uiSchool, int32 u
 
     //We got our usable spells so now lets randomly pick one
     if (!uiSpellCount)
-        return nullptr;
+        return NULL;
 
     return apSpell[rand()%uiSpellCount];
 }
@@ -343,7 +333,7 @@ std::list<Creature*> ScriptedAI::DoFindFriendlyMissingBuff(float fRange, uint32 
 
 Player* ScriptedAI::GetPlayerAtMinimumRange(float fMinimumRange)
 {
-    Player* pPlayer = nullptr;
+    Player* pPlayer = NULL;
 
     MaNGOS::AnyPlayerInObjectRangeCheck check(m_creature, fMinimumRange);
     MaNGOS::PlayerSearcher<MaNGOS::AnyPlayerInObjectRangeCheck> searcher(pPlayer, check);
@@ -428,21 +418,6 @@ bool ScriptedAI::EnterEvadeIfOutOfCombatArea(const uint32 uiDiff)
 
     EnterEvadeMode();
     return true;
-}
-
-void ScriptedAI::EnterEvadeIfOutOfHomeArea()
-{
-    if (!m_bEvadeOutOfHomeArea)
-        return;
-
-    if (m_creature->GetAreaId() != m_uiHomeArea)
-    {
-        std::ostringstream log;
-        log << "Home area left, evading.";
-        m_creature->LogScriptInfo(log);
-
-        EnterEvadeMode();
-    }
 }
 
 void Scripted_NoMovementAI::AttackStart(Unit* pWho)

@@ -41,7 +41,7 @@ namespace MaNGOS
 class BattleGroundChatBuilder
 {
 public:
-    BattleGroundChatBuilder(ChatMsg msgtype, int32 textId, Player const* source, va_list* args = nullptr)
+    BattleGroundChatBuilder(ChatMsg msgtype, int32 textId, Player const* source, va_list* args = NULL)
         : i_msgtype(msgtype), i_textId(textId), i_source(source), i_args(args) {}
     void operator()(WorldPacket& data, int32 loc_idx)
     {
@@ -84,7 +84,7 @@ private:
 class BattleGroundYellBuilder
 {
 public:
-    BattleGroundYellBuilder(uint32 language, int32 textId, Creature const* source, va_list* args = nullptr)
+    BattleGroundYellBuilder(uint32 language, int32 textId, Creature const* source, va_list* args = NULL)
         : i_language(language), i_textId(textId), i_source(source), i_args(args) {}
     void operator()(WorldPacket& data, int32 loc_idx)
     {
@@ -225,7 +225,7 @@ BattleGround::BattleGround()
     m_MinPlayers        = 0;
 
     m_MapId             = 0;
-    m_Map               = nullptr;
+    m_Map               = NULL;
 
     m_TeamStartLocX[BG_TEAM_ALLIANCE]   = 0;
     m_TeamStartLocX[BG_TEAM_HORDE]      = 0;
@@ -239,8 +239,8 @@ BattleGround::BattleGround()
     m_TeamStartLocO[BG_TEAM_ALLIANCE]   = 0;
     m_TeamStartLocO[BG_TEAM_HORDE]      = 0;
 
-    m_BgRaids[BG_TEAM_ALLIANCE]         = nullptr;
-    m_BgRaids[BG_TEAM_HORDE]            = nullptr;
+    m_BgRaids[BG_TEAM_ALLIANCE]         = NULL;
+    m_BgRaids[BG_TEAM_HORDE]            = NULL;
 
     m_PlayersCount[BG_TEAM_ALLIANCE]    = 0;
     m_PlayersCount[BG_TEAM_HORDE]       = 0;
@@ -284,7 +284,7 @@ BattleGround::~BattleGround()
     if (m_Map)
     {
         m_Map->SetUnload();
-        m_Map->SetBG(nullptr);
+        m_Map->SetBG(NULL);
     }
     // remove from bg free slot queue
     this->RemoveFromBGFreeSlotQueue();
@@ -344,13 +344,13 @@ void BattleGround::Update(uint32 diff)
             if (newtime > (MINUTE * IN_MILLISECONDS))
             {
                 if (newtime / (MINUTE * IN_MILLISECONDS) != m_PrematureCountDownTimer / (MINUTE * IN_MILLISECONDS))
-                    PSendMessageToAll(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING, CHAT_MSG_SYSTEM, nullptr, (uint32)(m_PrematureCountDownTimer / (MINUTE * IN_MILLISECONDS)));
+                    PSendMessageToAll(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING, CHAT_MSG_SYSTEM, NULL, (uint32)(m_PrematureCountDownTimer / (MINUTE * IN_MILLISECONDS)));
             }
             else
             {
                 //announce every 15 seconds
                 if (newtime / (15 * IN_MILLISECONDS) != m_PrematureCountDownTimer / (15 * IN_MILLISECONDS))
-                    PSendMessageToAll(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING_SECS, CHAT_MSG_SYSTEM, nullptr, (uint32)(m_PrematureCountDownTimer / IN_MILLISECONDS));
+                    PSendMessageToAll(LANG_BATTLEGROUND_PREMATURE_FINISH_WARNING_SECS, CHAT_MSG_SYSTEM, NULL, (uint32)(m_PrematureCountDownTimer / IN_MILLISECONDS));
             }
             m_PrematureCountDownTimer = newtime;
         }
@@ -402,8 +402,6 @@ void BattleGround::Update(uint32 diff)
             m_Events |= BG_STARTING_EVENT_4;
 
             StartingEventOpenDoors();
-
-            ReturnPlayersToHomeGY();
 
             SendMessageToAll(m_StartMessageIds[BG_STARTING_EVENT_FOURTH], CHAT_MSG_BG_SYSTEM_NEUTRAL);
             SetStatus(STATUS_IN_PROGRESS);
@@ -932,7 +930,7 @@ void BattleGround::RemovePlayerAtLeave(ObjectGuid guid, bool Transport, bool Sen
         {
             if (!group->RemoveMember(guid, 0))              // group was disbanded
             {
-                SetBgRaid(team, nullptr);
+                SetBgRaid(team, NULL);
                 delete group;
             }
         }
@@ -1354,26 +1352,6 @@ void BattleGround::StartingEventDespawnDoors()
     }
 }
 
-void BattleGround::ReturnPlayersToHomeGY()
-{
-    // return bastards back homie
-    for (auto itr = m_Players.begin(); itr != m_Players.end(); ++itr)
-    {
-        auto player = sObjectMgr.GetPlayer(itr->first);
-
-        if (!player || player->isGameMaster())
-            continue;
-
-        float x, y, z, o;
-
-        GetTeamStartLoc(player->GetTeam(), x, y, z, o);
-
-        // probably distance need some tweaking, but should be ok almost always
-        if (!player->IsWithinDist3d(x, y, z, 100.0f))
-            player->RepopAtGraveyard();
-    }
-}
-
 void BattleGround::SpawnEvent(uint8 event1, uint8 event2, bool spawn, bool forced_despawn)
 {
     // stop if we want to spawn something which was already spawned
@@ -1478,7 +1456,7 @@ void BattleGround::SpawnBGCreature(ObjectGuid guid, BattleGroundCreatureSpawnMod
     if (mode == RESPAWN_FORCED)
     {
         obj->SetRespawnDelay(RESPAWN_2MINUTES);
-        if (obj->GetRespawnTime() > time(nullptr))
+        if (obj->GetRespawnTime() > time(NULL))
             obj->SetRespawnTime(1);
     }
     else if (mode == DESPAWN_FORCED)
@@ -1490,7 +1468,7 @@ void BattleGround::SpawnBGCreature(ObjectGuid guid, BattleGroundCreatureSpawnMod
     else if (mode == RESPAWN_START)
     {
         obj->SetRespawnDelay(RESPAWN_2MINUTES);
-        if (obj->GetRespawnTime() > time(nullptr))
+        if (obj->GetRespawnTime() > time(NULL))
             obj->SetRespawnTime(1);
     }
     else if (mode == RESPAWN_STOP)
@@ -1503,7 +1481,7 @@ void BattleGround::SpawnBGCreature(ObjectGuid guid, BattleGroundCreatureSpawnMod
         }
         else
         {
-            if (obj->GetRespawnTime() < time(nullptr))
+            if (obj->GetRespawnTime() < time(NULL))
                 obj->SetRespawnTime(1);
         }
     }
@@ -1725,7 +1703,7 @@ void BattleGround::SetBgRaid(Team team, Group *bg_raid)
     Group* &old_raid = m_BgRaids[GetTeamIndexByTeamId(team)];
 
     if (old_raid)
-        old_raid->SetBattlegroundGroup(nullptr);
+        old_raid->SetBattlegroundGroup(NULL);
 
     if (bg_raid)
         bg_raid->SetBattlegroundGroup(this);

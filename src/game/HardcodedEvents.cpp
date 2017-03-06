@@ -478,52 +478,6 @@ DarkmoonState DarkmoonFaire::GetDarkmoonState()
 }
 
 /*
- * Lunar Festival Firework
- */
-
-void LunarFestivalFirework::Update()
-{
-    if (sGameEventMgr.IsActiveEvent(EVENT_LUNAR_FIREWORKS))
-    {
-        if (sGameEventMgr.IsActiveEvent(EVENT_FIREWORKS))
-        {
-            if (!IsHourBeginning())
-                sGameEventMgr.StopEvent(EVENT_FIREWORKS);
-        }
-        else
-        {
-            if (IsHourBeginning())
-                sGameEventMgr.StartEvent(EVENT_FIREWORKS);
-        }
-    }
-}
-
-void LunarFestivalFirework::Enable()
-{
-
-}
-
-void LunarFestivalFirework::Disable()
-{
-    if (sGameEventMgr.IsActiveEvent(EVENT_FIREWORKS))
-        sGameEventMgr.StopEvent(EVENT_FIREWORKS);
-}
-
-bool LunarFestivalFirework::IsHourBeginning(uint8 minutes) const
-{
-    time_t rawtime;
-    time(&rawtime);
-
-    struct tm* timeinfo;
-    timeinfo = localtime(&rawtime);
-
-    if (timeinfo->tm_min < minutes)
-        return true;
-
-    return false;
-}
-
-/*
  *
  */
 
@@ -534,7 +488,6 @@ void GameEventMgr::LoadHardcodedEvents(HardcodedEventList& eventList)
     auto moonbrook = new Moonbrook();
     auto nightmare = new DragonsOfNightmare();
     auto darkmoon = new DarkmoonFaire();
-    auto lunarfw = new LunarFestivalFirework();
 
-    eventList = { invasion, leprithus, moonbrook, nightmare, darkmoon, lunarfw };
+    eventList = { invasion, leprithus, moonbrook, nightmare, darkmoon };
 }

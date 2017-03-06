@@ -19,11 +19,13 @@
 
 #include "MapPersistentStateMgr.h"
 
+#include "SQLStorages.h"
 #include "Player.h"
 #include "GridNotifiers.h"
 #include "Log.h"
 #include "GridStates.h"
 #include "CellImpl.h"
+#include "Map.h"
 #include "MapManager.h"
 #include "Timer.h"
 #include "GridNotifiersImpl.h"
@@ -42,7 +44,7 @@ static uint32 resetEventTypeDelay[MAX_RESET_EVENT_TYPE] = { 0, 3600, 900, 300, 6
 //== MapPersistentState functions ==========================
 MapPersistentState::MapPersistentState(uint16 MapId, uint32 InstanceId)
     : m_instanceid(InstanceId), m_mapid(MapId),
-      m_usedByMap(nullptr)
+      m_usedByMap(NULL)
 {
 }
 
@@ -52,9 +54,6 @@ MapPersistentState::~MapPersistentState()
 
 MapEntry const* MapPersistentState::GetMapEntry() const
 {
-    if (m_usedByMap)
-        return m_usedByMap->GetMapEntry();
-
     return sMapStorage.LookupEntry<MapEntry>(m_mapid);
 }
 
@@ -272,7 +271,7 @@ void DungeonPersistentState::DeleteFromDB()
 time_t DungeonPersistentState::GetResetTimeForDB() const
 {
     // only state the reset time for normal instances
-    const MapEntry *entry = GetMapEntry();
+    const MapEntry *entry = sMapStorage.LookupEntry<MapEntry>(GetMapId());
     if (!entry || entry->mapType == MAP_RAID)
         return 0;
     else
@@ -407,7 +406,7 @@ void DungeonResetScheduler::LoadResetTimes()
 
     // calculate new global reset times for expired instances and those that have never been reset yet
     // add the global reset times to the priority queue
-    for (auto itr = sMapStorage.begin<MapEntry>(); itr < sMapStorage.end<MapEntry>(); ++itr)
+    for (auto itr = sMapStorage.getDataBegin<MapEntry>(); itr < sMapStorage.getDataEnd<MapEntry>(); ++itr)
     {
         // only raid maps have a global reset time
         if (!itr->IsDungeon() || !itr->resetDelay)

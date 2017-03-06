@@ -66,7 +66,7 @@ enum RollVote
     ROLL_NOT_VALID         = 4                              // not send to client
 };
 
-enum GroupMemberStatus
+enum GroupMemberOnlineStatus
 {
     MEMBER_STATUS_OFFLINE   = 0x0000,
     MEMBER_STATUS_ONLINE    = 0x0001,                       // Lua_UnitIsConnected
@@ -78,8 +78,6 @@ enum GroupMemberStatus
     MEMBER_STATUS_AFK       = 0x0040,                       // Lua_UnitIsAFK
     MEMBER_STATUS_DND       = 0x0080,                       // Lua_UnitIsDND
 };
-
-GroupMemberStatus GetGroupMemberStatus(const Player* member);
 
 enum GroupType
 {
@@ -239,7 +237,6 @@ class MANGOS_DLL_SPEC Group
         MemberSlotList const& GetMemberSlots() const { return m_memberSlots; }
         GroupReference* GetFirstMember() { return m_memberMgr.getFirst(); }
         uint32 GetMembersCount() const { return m_memberSlots.size(); }
-        uint32 GetMembersMinCount() const { return (isBGGroup() ? 1 : 2); }
         void GetDataForXPAtKill(Unit const* victim, uint32& count,uint32& sum_level, Player* & member_with_max_level, Player* & not_gray_member_with_max_level, Player* additional = NULL);
         uint8 GetMemberGroup(ObjectGuid guid) const
         {
@@ -287,7 +284,6 @@ class MANGOS_DLL_SPEC Group
         }
 
         void SetTargetIcon(uint8 id, ObjectGuid targetGuid);
-        void ClearTargetIcon(ObjectGuid targetGuid);
         uint16 InInstance();
         bool InCombatToInstance(uint32 instanceId);
         void ResetInstances(InstanceResetMethod method, Player* SendMsgTo);
@@ -295,8 +291,6 @@ class MANGOS_DLL_SPEC Group
         void SendTargetIconList(WorldSession *session);
         void SendUpdate();
         void UpdatePlayerOutOfRange(Player* pPlayer);
-        void UpdatePlayerOnlineStatus(Player* player, bool online = true);
-        void UpdateOfflineLeader(time_t time, uint32 delay);
         void BroadcastGroupUpdate();
                                                             // ignore: GUID of player that will be ignored
         void BroadcastPacket(WorldPacket *packet, bool ignorePlayersInBGRaid, int group=-1, ObjectGuid ignore = ObjectGuid());
@@ -334,9 +328,7 @@ class MANGOS_DLL_SPEC Group
         bool _addMember(ObjectGuid guid, const char* name, bool isAssistant=false);
         bool _addMember(ObjectGuid guid, const char* name, bool isAssistant, uint8 group);
         bool _removeMember(ObjectGuid guid);                // returns true if leader has changed
-        void _chooseLeader(bool offline = false);
         void _setLeader(ObjectGuid guid);
-        void _updateLeaderFlag(const bool remove = false);
 
         void _removeRolls(ObjectGuid guid);
 
@@ -398,7 +390,6 @@ class MANGOS_DLL_SPEC Group
         InvitesList         m_invitees;
         ObjectGuid          m_leaderGuid;
         std::string         m_leaderName;
-        time_t              m_leaderLastOnline;
         ObjectGuid          m_mainTankGuid;
         ObjectGuid          m_mainAssistantGuid;
         GroupType           m_groupType;

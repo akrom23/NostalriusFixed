@@ -247,38 +247,9 @@ void npc_tirion_fordring_in_dreamsAI::UpdateEscortAI(const uint32 uiDiff)
                 DoScriptText(SAY_TIRION_8, m_creature);
                 m_creature->HandleEmote(EMOTE_ONESHOT_EXCLAMATION);
                 m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
-
                 if (auto pTaelanAI = m_pInterface->GetAI<npc_taelanAI>(m_creature, INDEX_TAELAN))
                     pTaelanAI->Event7CompleteQuest();
-                else
-                {
-                    m_uiEventCount = 14;
-                    m_uiEventTimer = 3000;
-                    return;
-                }
-
                 m_uiEventCount = 0;
-            }
-            else
-                m_uiEventTimer -= uiDiff;
-            break;
-        }
-        case 14:
-        {
-            if (m_uiEventTimer < uiDiff)
-            {
-                sLog.outError("[WesternPlaguelands.InDreams] TaelanAI cast failed, retrying.");
-
-                if (auto pTaelanAI = m_pInterface->GetAI<npc_taelanAI>(m_creature, INDEX_TAELAN))
-                {
-                    pTaelanAI->Event7CompleteQuest();
-                    m_uiEventCount = 0;
-                }
-                else
-                {
-                    sLog.outError("[WesternPlaguelands.InDreams] TaelanAI cast failed completely, aborting.");
-                    FailEscort();
-                }
             }
             else
                 m_uiEventTimer -= uiDiff;
@@ -449,6 +420,7 @@ void npc_isillienAI::GuardsDoDespawn() const
 
 void npc_isillienAI::GuardsDoAttack(Unit* pTarget, bool inner, bool start)
 {
+    // inner guards: attack subTarget or pTarget on null
     for (auto itr = inner ? pCrimsonInner.begin() : pCrimsonOuter.begin(); itr != (inner ? pCrimsonInner.end() : pCrimsonOuter.end()); ++itr)
     {
         if (auto pCrimson = m_creature->GetMap()->GetCreature(*itr))
@@ -465,8 +437,7 @@ void npc_isillienAI::GuardsDoAttack(Unit* pTarget, bool inner, bool start)
             }
             else
             {
-                auto pVictim = pCrimson->getVictim();
-                if (!pVictim || !pVictim->IsCharmerOrOwnerPlayerOrPlayerItself())
+                if (!pCrimson->getVictim()->ToPlayer())
                     pCrimson->AttackStop();
             }
         }

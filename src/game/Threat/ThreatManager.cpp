@@ -305,14 +305,10 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
             Unit* target = currentRef->getTarget();
             MANGOS_ASSERT(target);                              // if the ref has status online the target must be there !
 
-            bool outOfThreatArea = pAttacker->IsOutOfThreatArea(target);
-            bool validAttackTarget = pAttacker->IsValidAttackTarget(target);
-            bool targetableForAttack = target->isTargetableForAttack();
-
-            if (outOfThreatArea)
+            if (pAttacker->IsOutOfThreatArea(target))
                 return nullptr;
 
-            if (!validAttackTarget || !targetableForAttack)
+            if (!pAttacker->IsValidAttackTarget(target))
             {
                 if (currentRef == pCurrentVictim)
                     pCurrentVictim = nullptr;
@@ -322,7 +318,7 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
 
             float attackDistance = pAttacker->GetMaxChaseDistance(target);
             // Skip this unit if low priority
-            if (!allowLowPriorityTargets && (target->IsImmuneToDamage(pAttacker->GetMeleeDamageSchoolMask()) ||
+            if (!allowLowPriorityTargets && (target->IsImmunedToDamage(pAttacker->GetMeleeDamageSchoolMask()) ||
                                             target->IsSecondaryThreatTarget() ||
                                            (attackerImmobilized && !target->IsWithinDist(pAttacker, attackDistance))))
             {
@@ -344,7 +340,8 @@ HostileReference* ThreatContainer::selectNextVictim(Creature* pAttacker, Hostile
                 }
 
                 if (currentRef->getThreat() > 1.3f * pCurrentVictim->getThreat() ||
-                        currentRef->getThreat() > 1.1f * pCurrentVictim->getThreat() && pAttacker->CanReachWithMeleeAttack(target))
+                        (currentRef->getThreat() > 1.1f * pCurrentVictim->getThreat() &&
+                         pAttacker->IsWithinMeleeRange(target)))
                 {
                     //implement 110% threat rule for targets in melee range
                     found = true;                           //and 130% rule for targets in ranged distances

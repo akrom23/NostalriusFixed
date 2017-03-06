@@ -1400,13 +1400,6 @@ void BattleGroundAV::SendMineWorldStates(uint32 mine)
 
 WorldSafeLocsEntry const* BattleGroundAV::GetClosestGraveYard(Player *plr)
 {
-    // repop players at the entrance GY if BG is not started yet
-    if (GetStatus() != STATUS_IN_PROGRESS && !plr->isGameMaster())
-    {
-        if (WorldSafeLocsEntry const* gEntry = sWorldSafeLocsStore.LookupEntry(plr->GetTeam() == ALLIANCE ? 611 : 610))
-            return gEntry;
-    }
-
     float x = plr->GetPositionX();
     float y = plr->GetPositionY();
     float mindist = 9999999.0f;

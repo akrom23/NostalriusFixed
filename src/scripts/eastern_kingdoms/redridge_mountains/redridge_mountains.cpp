@@ -44,23 +44,23 @@ enum
     SAY_CORPORAL_KEESHAN_5  = -1000565,
 };
 
-struct npc_corporal_keeshan_escortAI : npc_escortAI
+struct npc_corporal_keeshan_escortAI : public npc_escortAI
 {
-    explicit npc_corporal_keeshan_escortAI(Creature* pCreature) : npc_escortAI(pCreature)
+    npc_corporal_keeshan_escortAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
-        npc_corporal_keeshan_escortAI::Reset();
+        Reset();
     }
 
     uint32 m_uiMockingBlowTimer;
     uint32 m_uiShieldBashTimer;
 
-    void Reset() override
+    void Reset()
     {
         m_uiMockingBlowTimer = 5000;
         m_uiShieldBashTimer  = 8000;
     }
 
-    void WaypointStart(uint32 uiWP) override
+    void WaypointStart(uint32 uiWP)
     {
         switch (uiWP)
         {
@@ -74,7 +74,7 @@ struct npc_corporal_keeshan_escortAI : npc_escortAI
         }
     }
 
-    void WaypointReached(uint32 uiWP) override
+    void WaypointReached(uint32 uiWP)
     {
         switch (uiWP)
         {
@@ -90,7 +90,7 @@ struct npc_corporal_keeshan_escortAI : npc_escortAI
         }
     }
 
-    void UpdateEscortAI(const uint32 uiDiff) override
+    void UpdateEscortAI(const uint32 uiDiff)
     {
         //Combat check
         if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
@@ -125,7 +125,7 @@ bool QuestAccept_npc_corporal_keeshan(Player* pPlayer, Creature* pCreature, cons
 {
     if (pQuest->GetQuestId() == QUEST_MISSING_IN_ACTION)
     {
-        if (auto pEscortAI = dynamic_cast<npc_corporal_keeshan_escortAI*>(pCreature->AI()))
+        if (npc_corporal_keeshan_escortAI* pEscortAI = dynamic_cast<npc_corporal_keeshan_escortAI*>(pCreature->AI()))
         {
             DoScriptText(SAY_CORPORAL_KEESHAN_1, pCreature);
             pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);

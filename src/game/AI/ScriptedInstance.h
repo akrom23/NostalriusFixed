@@ -29,7 +29,7 @@ class MANGOS_DLL_DECL ScriptedInstance : public InstanceData
 {
     public:
 
-        explicit ScriptedInstance(Map* pMap) : InstanceData(pMap) {}
+        ScriptedInstance(Map* pMap) : InstanceData(pMap) {}
         ~ScriptedInstance() {}
 
         // Default accessor functions
@@ -47,7 +47,7 @@ class MANGOS_DLL_DECL ScriptedInstance : public InstanceData
         //sends world state update to all players in instance
         void DoUpdateWorldState(uint32 uiStateId, uint32 uiStateData);
         std::string GenSaveData(uint32* encounters, uint32 maxIndex);
-        void LoadSaveData(const char* pStr, uint32* encounters, uint32 maxIndex);
+        void        LoadSaveData(const char* pStr, uint32* encounters, uint32 maxIndex);
 
     protected:
         // Storage for GO-Guids and NPC-Guids
@@ -59,7 +59,7 @@ class MANGOS_DLL_DECL ScriptedInstance : public InstanceData
 class MANGOS_DLL_DECL ScriptedInstance_PTR : public ScriptedInstance
 {
 public:
-    explicit ScriptedInstance_PTR(Map* pMap) : ScriptedInstance(pMap) {}
+    ScriptedInstance_PTR(Map* pMap) : ScriptedInstance(pMap) {}
     void OnCreatureEnterCombat(Creature* creature) override;
     void Update(uint32 diff) override;
 protected:

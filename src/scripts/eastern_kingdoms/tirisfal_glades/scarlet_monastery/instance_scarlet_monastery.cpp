@@ -24,12 +24,12 @@ EndScriptData */
 #include "scriptPCH.h"
 #include "scarlet_monastery.h"
 
-struct instance_scarlet_monastery : ScriptedInstance
+struct instance_scarlet_monastery : public ScriptedInstance
 {
-    explicit instance_scarlet_monastery(Map* pMap) : ScriptedInstance(pMap)
+    instance_scarlet_monastery(Map* pMap) : ScriptedInstance(pMap)
     {
-        instance_scarlet_monastery::Initialize();
-    }
+        Initialize();
+    };
 
     uint32 m_auiEncounter[INSTANCE_SM_MAX_ENCOUNTER];
 
@@ -38,7 +38,7 @@ struct instance_scarlet_monastery : ScriptedInstance
     uint64 m_uiVorrelGUID;
     uint64 m_uiDoorHighInquisitorGUID;
 
-    void Initialize() override
+    void Initialize()
     {
         memset(&m_auiEncounter, 0, sizeof(m_auiEncounter));
 
@@ -48,7 +48,7 @@ struct instance_scarlet_monastery : ScriptedInstance
         m_uiDoorHighInquisitorGUID = 0;
     }
 
-    void OnCreatureCreate(Creature* pCreature) override
+    void OnCreatureCreate(Creature* pCreature)
     {
         switch (pCreature->GetEntry())
         {
@@ -64,13 +64,13 @@ struct instance_scarlet_monastery : ScriptedInstance
         }
     }
 
-    void OnObjectCreate(GameObject* pGo) override
+    void OnObjectCreate(GameObject* pGo)
     {
         if (pGo->GetEntry() == 104600)
             m_uiDoorHighInquisitorGUID = pGo->GetGUID();
     }
 
-    uint64 GetData64(uint32 data) override
+    uint64 GetData64(uint32 data)
     {
         switch (data)
         {
@@ -87,7 +87,7 @@ struct instance_scarlet_monastery : ScriptedInstance
         return 0;
     }
 
-    void SetData(uint32 uiType, uint32 uiData) override
+    void SetData(uint32 uiType, uint32 uiData)
     {
         if (uiType == TYPE_MOGRAINE_AND_WHITE_EVENT)
         {
@@ -100,7 +100,7 @@ struct instance_scarlet_monastery : ScriptedInstance
         }
     }
 
-    uint32 GetData(uint32 uiData) override
+    uint32 GetData(uint32 uiData)
     {
         if (uiData == TYPE_MOGRAINE_AND_WHITE_EVENT)
             return m_auiEncounter[0];

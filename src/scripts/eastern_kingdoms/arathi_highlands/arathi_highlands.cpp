@@ -132,163 +132,141 @@ CreatureAI* GetAI_npc_professor_phizzlethorpe(Creature* pCreature)
 
 enum
 {
+    SAY_BREEN_START1          = -1000501,
+    SAY_BREEN_START2          = -1000502,
+    SAY_BREEN_CANNON          = -1000503,
+    SAY_BREEN_DONE            = -1000507,
+    SAY_BREEN_GRATITUDE       = -1000508,
+    SAY_DAGGERSPINE           = -1000509,
+
     QUEST_DEATH_FROM_BELOW     = 667,
 
     NPC_DAGGERSPINE_RAIDER     = 2595,
     NPC_DAGGERSPINE_SORCERESS  = 2596,
 };
 
-#define BREEN_YELL_1    "All hands to battle stations! Naga incoming!"
-#define NAGA_YELL_1     "You've plundered our treasures too long. Prepare to meet your watery grave!"
-#define BREEN_SAY_2     "If we can just hold them now, I am sure we will be in the clear."
-
-static float m_afNagaCoord[4][4] =
+static float m_afNagaCoord[3][3] =
 {
-    { -2154.049f, -1969.738f, 15.371f, 5.54f },
-    { -2157.606f, -1972.530f, 15.552f, 5.54f },
-    { -2157.533f, -1968.904f, 15.410f, 5.54f },
-    { -2109.839f, -2017.029f, 6.0080f, 5.54f },
+    { -2154.049072f, -1969.737671f, 15.371008f},
+    { -2157.605713f, -1972.530151f, 15.551609f},
+    { -2157.532959f, -1968.904053f, 15.410400f},
 };
 
-struct npc_shakes_o_breenAI : npc_escortAI
+struct npc_shakes_o_breenAI : public npc_escortAI
 {
-    explicit npc_shakes_o_breenAI(Creature* pCreature) : npc_escortAI(pCreature)
+    npc_shakes_o_breenAI(Creature* pCreature) : npc_escortAI(pCreature)
     {
-        m_uiPlayerCheckTimer = 3000;
-
-        npc_shakes_o_breenAI::Reset();
+        m_uiWaveId = 0;
+        iSumCreaCnt = 0;
+        iSumCreaDead = 0;
+        Reset();
     }
 
-    uint8 m_uiWaveId;
-    uint8 m_uiNagaAlive;
+    uint32 m_uiWaveId;
     uint32 m_uiEventTimer;
-    uint32 m_uiPlayerCheckTimer;
+    int iSumCreaCnt;
+    int iSumCreaDead;
 
-    void Reset() override
+    void Reset()
     {
-        m_uiEventTimer = 20000;
+        m_uiEventTimer = 10000;
 
         if (!HasEscortState(STATE_ESCORT_ESCORTING))
         {
             m_uiWaveId = 0;
-            m_uiNagaAlive = 0;
-            m_creature->SetFlag(UNIT_NPC_FLAGS, UNIT_NPC_FLAG_QUESTGIVER);
+            iSumCreaCnt = 0;
+            iSumCreaDead = 0;
         }
     }
 
-    void WaypointReached(uint32 /*uiPointId*/) override {}
+    void AttackStart(Unit *) {}
+    void AttackedBy(Unit *) {}
 
-    void DoSummon(uint32 entry, uint8 index) const
+    void WaypointReached(uint32 uiPointId)
     {
-        m_creature->SummonCreature(entry, 
-            m_afNagaCoord[index][0], 
-            m_afNagaCoord[index][1], 
-            m_afNagaCoord[index][2], 
-            m_afNagaCoord[index][3], TEMPSUMMON_TIMED_OR_DEAD_DESPAWN, MINUTE*IN_MILLISECONDS);
+        switch (uiPointId)
+        {
+            case 1:
+                if (Player* pPlayer = GetPlayerForEscort())
+                    DoScriptText(SAY_BREEN_START2, m_creature, pPlayer);
+                break;
+            case 8:
+                if (Player* pPlayer = GetPlayerForEscort())
+                {
+                    DoScriptText(SAY_BREEN_CANNON, m_creature, pPlayer);
+                    SetEscortPaused(true);
+                }
+                break;
+            case 18:
+                if (Player* pPlayer = GetPlayerForEscort())
+                    DoScriptText(SAY_BREEN_GRATITUDE, m_creature, pPlayer);
+                break;
+        }
     }
 
     void DoWaveSummon()
     {
-        ++m_uiWaveId;
-
-        if (m_uiWaveId == 3)
-            m_creature->MonsterSay(BREEN_SAY_2);
-
         switch (m_uiWaveId)
         {
             case 1:
-            case 3:
-                DoSummon(NPC_DAGGERSPINE_RAIDER, 0);
-                DoSummon(NPC_DAGGERSPINE_RAIDER, 1);
-                DoSummon(NPC_DAGGERSPINE_SORCERESS, 2);
+                m_creature->SummonCreature(NPC_DAGGERSPINE_RAIDER, m_afNagaCoord[0][0], m_afNagaCoord[0][1], m_afNagaCoord[0][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_DAGGERSPINE_RAIDER, m_afNagaCoord[1][0], m_afNagaCoord[1][1], m_afNagaCoord[1][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_DAGGERSPINE_SORCERESS, m_afNagaCoord[2][0], m_afNagaCoord[2][1], m_afNagaCoord[2][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
                 break;
             case 2:
-                DoSummon(NPC_DAGGERSPINE_RAIDER, 0);
-                DoSummon(NPC_DAGGERSPINE_RAIDER, 1);
+                m_creature->SummonCreature(NPC_DAGGERSPINE_RAIDER, m_afNagaCoord[0][0], m_afNagaCoord[0][1], m_afNagaCoord[0][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_DAGGERSPINE_RAIDER, m_afNagaCoord[1][0], m_afNagaCoord[1][1], m_afNagaCoord[1][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                break;
+            case 3:
+                m_creature->SummonCreature(NPC_DAGGERSPINE_RAIDER, m_afNagaCoord[0][0], m_afNagaCoord[0][1], m_afNagaCoord[0][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_DAGGERSPINE_RAIDER, m_afNagaCoord[1][0], m_afNagaCoord[1][1], m_afNagaCoord[1][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                m_creature->SummonCreature(NPC_DAGGERSPINE_SORCERESS, m_afNagaCoord[2][0], m_afNagaCoord[2][1], m_afNagaCoord[2][2], 0.0f, TEMPSUMMON_TIMED_DESPAWN_OUT_OF_COMBAT, 60000);
+                break;
+            case 4:
+                SetEscortPaused(false);
+                DoScriptText(SAY_BREEN_DONE, m_creature);
+
+                if (Player* pPlayer = GetPlayerForEscort())
+                    pPlayer->GroupEventHappens(QUEST_DEATH_FROM_BELOW, m_creature);
                 break;
         }
     }
 
-    void FinishEvent(bool success)
+    void JustSummoned(Creature* pSummoned)
     {
-        if (success)
+        pSummoned->AI()->AttackStart(m_creature);
+        DoScriptText(SAY_DAGGERSPINE, pSummoned);
+        iSumCreaCnt++;
+    }
+
+    void SummonedCreatureJustDied(Creature* pSummoned)
+    {
+        iSumCreaDead++;
+    }
+
+    void UpdateEscortAI(const uint32 uiDiff)
+    {
+        if (!m_creature->SelectHostileTarget() || !m_creature->getVictim())
         {
-            if (Player* pPlayer = GetPlayerForEscort())
-                pPlayer->GroupEventHappens(QUEST_DEATH_FROM_BELOW, m_creature);            
-        }
-        else
-        {
-            m_creature->DisappearAndDie();
+            if (HasEscortState(STATE_ESCORT_PAUSED))
+            {
+                if (m_uiEventTimer < uiDiff)
+                {
+                    if (iSumCreaDead >= iSumCreaCnt)
+                    {
+                        ++m_uiWaveId;
+                        DoWaveSummon();
+                        m_uiEventTimer = 5000;
+                    }
+                }
+                else
+                    m_uiEventTimer -= uiDiff;
+            }
+
             return;
         }
 
-        RemoveEscortState(STATE_ESCORT_ESCORTING | STATE_ESCORT_PAUSED);
-        Reset();
-    }
 
-    void JustSummoned(Creature* pSummoned) override
-    {
-        if (m_uiWaveId == 1 && pSummoned->GetEntry() == NPC_DAGGERSPINE_RAIDER && !m_uiNagaAlive)
-            pSummoned->MonsterYell(NAGA_YELL_1);
-
-        ++m_uiNagaAlive;
-
-        pSummoned->SetNoXP();
-        pSummoned->GetMotionMaster()->Clear();
-        pSummoned->SetWalk(false);
-        pSummoned->GetMotionMaster()->MovePoint(0, m_afNagaCoord[3][0], m_afNagaCoord[3][1], m_afNagaCoord[3][2], MOVE_PATHFINDING);
-    }
-
-    void SummonedCreatureJustDied(Creature* pSummoned) override
-    {
-        --m_uiNagaAlive;
-        pSummoned->loot.clear();
-    }
-
-    void SummonedMovementInform(Creature* pSummoned, uint32 /*uiMotionType*/, uint32 uiPointId) override
-    {
-        if (!uiPointId)
-        {
-            m_creature->AddThreat(pSummoned, 10.0f);
-            pSummoned->AddThreat(m_creature, 10.0f);
-        }
-    }
-
-    void UpdateEscortAI(const uint32 uiDiff) override
-    {
-        if (HasEscortState(STATE_ESCORT_ESCORTING))
-        {
-            if (m_uiPlayerCheckTimer < uiDiff)
-            {
-                auto pPlayer = GetPlayerForEscort();
-                if (!pPlayer || !pPlayer->IsInRange(m_creature, 0.0f, 150.0f))
-                    FinishEvent(false);
-                else
-                    m_uiPlayerCheckTimer = 3000;
-            }
-            else
-                m_uiPlayerCheckTimer -= uiDiff;
-
-            if (m_uiEventTimer < uiDiff)
-            {
-                if (m_uiWaveId < 3)
-                {
-                    DoWaveSummon();
-                    m_uiEventTimer = 20000;                
-                }
-                else
-                {
-                    if (m_uiNagaAlive)
-                        m_uiEventTimer = 1000;
-                    else
-                        FinishEvent(true);
-                }
-            }
-            else
-                m_uiEventTimer -= uiDiff;            
-        }
-
-        npc_escortAI::UpdateEscortAI(uiDiff);
     }
 };
 
@@ -296,12 +274,12 @@ bool QuestAccept_npc_shakes_o_breen(Player* pPlayer, Creature* pCreature, const 
 {
     if (pQuest->GetQuestId() == QUEST_DEATH_FROM_BELOW)
     {
-        if (auto pEscortAI = dynamic_cast<npc_shakes_o_breenAI*>(pCreature->AI()))
+        if (npc_shakes_o_breenAI* pEscortAI = dynamic_cast<npc_shakes_o_breenAI*>(pCreature->AI()))
         {
-            pCreature->MonsterYell(BREEN_YELL_1);
+            DoScriptText(SAY_BREEN_START1, pCreature);
+            pCreature->setFaction(FACTION_ESCORT_N_NEUTRAL_PASSIVE);
+
             pEscortAI->Start(false, pPlayer->GetGUID(), pQuest);
-            pEscortAI->SetEscortPaused(true);
-            pCreature->SetOrientation(2.67f);
         }
     }
 

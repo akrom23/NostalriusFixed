@@ -141,7 +141,7 @@ World::World()
         m_configBoolValues[i] = false;
 
     m_timeRate = 1.0f;
-    m_charDbWorkerThread    = nullptr;
+    m_charDbWorkerThread    = NULL;
 }
 
 /// World destructor
@@ -161,7 +161,7 @@ World::~World()
 
     m_weathers.clear();
 
-    CliCommandHolder* command = nullptr;
+    CliCommandHolder* command = NULL;
     while (cliCmdQueue.next(command))
         delete command;
 
@@ -201,7 +201,7 @@ Player* World::FindPlayerInZone(uint32 zone)
             return player;
         }
     }
-    return nullptr;
+    return NULL;
 }
 
 /// Find a session by its id
@@ -212,7 +212,7 @@ WorldSession* World::FindSession(uint32 id) const
     if (itr != m_sessions.end())
         return itr->second;                                 // also can return NULL for kicked session
     else
-        return nullptr;
+        return NULL;
 }
 
 /// Remove a given session
@@ -415,7 +415,7 @@ Weather* World::FindWeather(uint32 id) const
     if (itr != m_weathers.end())
         return itr->second;
     else
-        return nullptr;
+        return 0;
 }
 
 /// Remove a Weather object for the given zoneid
@@ -438,7 +438,7 @@ Weather* World::AddWeather(uint32 zone_id)
 
     // zone not have weather, ignore
     if (!weatherChances)
-        return nullptr;
+        return NULL;
 
     Weather* w = new Weather(zone_id, weatherChances);
     m_weathers[w->GetZone()] = w;
@@ -761,8 +761,6 @@ void World::LoadConfigSettings(bool reload)
 
     setConfig(CONFIG_UINT32_INSTANT_LOGOUT, "InstantLogout", SEC_MODERATOR);
 
-    setConfigMin(CONFIG_UINT32_GROUP_OFFLINE_LEADER_DELAY, "Group.OfflineLeaderDelay", 300, 0);
-
     setConfigMin(CONFIG_UINT32_GUILD_EVENT_LOG_COUNT, "Guild.EventLogRecordsCount", GUILD_EVENTLOG_MAX_RECORDS, GUILD_EVENTLOG_MAX_RECORDS);
 
     setConfig(CONFIG_UINT32_TIMERBAR_FATIGUE_GMLEVEL, "TimerBar.Fatigue.GMLevel", SEC_CONSOLE);
@@ -899,10 +897,6 @@ void World::LoadConfigSettings(bool reload)
     m_timeZoneOffset = sConfig.GetIntDefault("TimeZoneOffset", 0) * HOUR;
 
     LoadNostalriusConfig(reload);
-
-    // Smartlog data
-    sLog.InitSmartlogEntries(sConfig.GetStringDefault("Smartlog.ExtraEntries", ""));
-    sLog.InitSmartlogGuids(sConfig.GetStringDefault("Smartlog.ExtraGuids", ""));
 }
 
 void World::LoadNostalriusConfig(bool reload)
@@ -988,10 +982,6 @@ void World::LoadNostalriusConfig(bool reload)
     setConfig(CONFIG_BOOL_LOGSDB_CHAT,                                  "LogsDB.Chat", 1);
     setConfig(CONFIG_BOOL_LOGSDB_TRADES,                                "LogsDB.Trades", 1);
     setConfig(CONFIG_BOOL_LOGSDB_TRANSACTIONS,                          "LogsDB.Transactions", 0);
-    setConfig(CONFIG_BOOL_SMARTLOG_DEATH,                               "Smartlog.Death", 1);
-    setConfig(CONFIG_BOOL_SMARTLOG_LONGCOMBAT,                          "Smartlog.LongCombat", 1);
-    setConfig(CONFIG_BOOL_SMARTLOG_SCRIPTINFO,                          "Smartlog.ScriptInfo", 1);
-    setConfig(CONFIG_UINT32_LONGCOMBAT,                                 "Smartlog.LongCombatDuration", 30*MINUTE);
     setConfig(CONFIG_UINT32_PUB_CHANS_MUTE_VANISH_LEVEL,                "PublicChansMute.BypassLevel", 61);
 
     setConfig(CONFIG_BOOL_ENABLE_CHAR_CREATION,                         "CharCreation.Enable", 1);
@@ -1061,7 +1051,7 @@ public:
 void World::SetInitialWorldSettings()
 {
     ///- Initialize the random number generator
-    srand((unsigned int)time(nullptr));
+    srand((unsigned int)time(NULL));
 
     ///- Time server startup
     uint32 uStartTime = WorldTimer::getMSTime();
@@ -1120,17 +1110,14 @@ void World::SetInitialWorldSettings()
     sObjectMgr.SetDBCLocaleIndex(GetDefaultDbcLocale());    // Get once for all the locale index of DBC language (console/broadcasts)
     sSpellMgr.LoadSpells();
 
-    sLog.outString("Loading Script Names...");
-    sScriptMgr.LoadScriptNames();
-
     sLog.outString("Loading MapTemplate...");
     sObjectMgr.LoadMapTemplate();
 
-    sLog.outString("Loading AreaTemplate...");
-    sObjectMgr.LoadAreaTemplate();
-
     sLog.outString("Loading `spell_mod` and `spell_effect_mod`...");
     sSpellModMgr.LoadSpellMods();
+
+    sLog.outString("Loading Script Names...");
+    sScriptMgr.LoadScriptNames();
 
     sLog.outString("Loading SkillLineAbilityMultiMap Data...");
     sSpellMgr.LoadSkillLineAbilityMap();
@@ -1402,7 +1389,6 @@ void World::SetInitialWorldSettings()
     sObjectMgr.LoadPageTextLocales();                       // must be after PageText loading
     sObjectMgr.LoadGossipMenuItemsLocales();                // must be after gossip menu items loading
     sObjectMgr.LoadPointOfInterestLocales();                // must be after POI loading
-    sObjectMgr.LoadAreaLocales();
     sLog.outString(">>> Localization strings loaded");
     sLog.outString();
 
@@ -1501,9 +1487,6 @@ void World::SetInitialWorldSettings()
     m_timers[WUPDATE_CORPSES].SetInterval(20 * MINUTE * IN_MILLISECONDS);
     m_timers[WUPDATE_SAVE_VAR].SetInterval(MINUTE * IN_MILLISECONDS);
 
-    // Update groups with offline leader after delay in seconds
-    m_timers[WUPDATE_GROUPS].SetInterval(IN_MILLISECONDS);
-
     ///- Initialize static helper structures
     AIRegistry::Initialize();
     Player::InitVisibleBits();
@@ -1591,6 +1574,8 @@ void World::SetInitialWorldSettings()
     m_broadcaster =
         std::make_unique<MovementBroadcaster>(sWorld.getConfig(CONFIG_UINT32_PACKET_BCAST_THREADS),
                                               std::chrono::milliseconds(sWorld.getConfig(CONFIG_UINT32_PACKET_BCAST_FREQUENCY)));
+
+    // Fin Nostalrius
 
     if (!isMapServer)
         m_charDbWorkerThread = new ACE_Based::Thread(new CharactersDatabaseWorkerThread());
@@ -1746,17 +1731,6 @@ void World::Update(uint32 diff)
     sAutoTestingMgr->Update(diff);
     sNodesMgr->OnWorldUpdate(diff);
 
-    ///- Update groups with offline leaders
-    if (m_timers[WUPDATE_GROUPS].Passed())
-    {
-        m_timers[WUPDATE_GROUPS].Reset();
-        if (const uint32 delay = getConfig(CONFIG_UINT32_GROUP_OFFLINE_LEADER_DELAY))
-        {
-            for (ObjectMgr::GroupMap::const_iterator i = sObjectMgr.GetGroupMapBegin(); i != sObjectMgr.GetGroupMapEnd(); ++i)
-                i->second->UpdateOfflineLeader(m_gameTime, delay);
-        }
-    }
-
     uint32 asyncWaitBegin = WorldTimer::getMSTime();
     for (int i = 0; i < threadsCount; ++i)
     {
@@ -1852,7 +1826,7 @@ class WorldWorldTextBuilder
 {
 public:
     typedef std::vector<WorldPacket*> WorldPacketList;
-    explicit WorldWorldTextBuilder(int32 textId, va_list* args = nullptr) : i_textId(textId), i_args(args) {}
+    explicit WorldWorldTextBuilder(int32 textId, va_list* args = NULL) : i_textId(textId), i_args(args) {}
     void operator()(WorldPacketList& data_list, int32 loc_idx)
     {
         char const* text = sObjectMgr.GetMangosString(i_textId, loc_idx);
@@ -1876,7 +1850,7 @@ private:
     char* lineFromMessage(char*& pos)
     {
         char* start = strtok(pos, "\n");
-        pos = nullptr;
+        pos = NULL;
         return start;
     }
     void do_helper(WorldPacketList& data_list, char* text)
@@ -1991,7 +1965,7 @@ void World::SendGlobalText(const char* text, WorldSession *self)
 
     while (char* line = ChatHandler::LineFromMessage(pos))
     {
-        ChatHandler::FillMessageData(&data, nullptr, CHAT_MSG_SYSTEM, LANG_UNIVERSAL, line);
+        ChatHandler::FillMessageData(&data, NULL, CHAT_MSG_SYSTEM, LANG_UNIVERSAL, line);
         SendGlobalMessage(&data, self);
     }
 
@@ -2018,7 +1992,7 @@ void World::SendZoneMessage(uint32 zone, WorldPacket *packet, WorldSession *self
 void World::SendZoneText(uint32 zone, const char* text, WorldSession *self, uint32 team)
 {
     WorldPacket data;
-    ChatHandler::FillMessageData(&data, nullptr, CHAT_MSG_SYSTEM, LANG_UNIVERSAL, text);
+    ChatHandler::FillMessageData(&data, NULL, CHAT_MSG_SYSTEM, LANG_UNIVERSAL, text);
     SendZoneMessage(zone, &data, self, team);
 }
 
@@ -2053,26 +2027,6 @@ void World::WarnAccount(uint32 accountId, std::string from, std::string reason, 
             accountId, from.c_str(), reason.c_str(), realmID);
 }
 
-void World::BanAccount(uint32 accountId, uint32 duration, std::string reason, std::string author)
-{
-    LoginDatabase.escape_string(reason);
-    std::string safe_author = author;
-    LoginDatabase.escape_string(safe_author);
-
-    //No SQL injection as strings are escaped
-    LoginDatabase.PExecute("INSERT INTO account_banned (id, bandate, unbandate, bannedby, banreason, active, realm) VALUES ('%u', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()+%u, '%s', '%s', '1', %u)",
-        accountId, duration, safe_author.c_str(), reason.c_str(), realmID);
-
-    if (duration > 0)
-        sAccountMgr.BanAccount(accountId, time(nullptr) + duration);
-    else
-        sAccountMgr.BanAccount(accountId, 0xFFFFFFFF);
-
-    if (WorldSession* sess = FindSession(accountId))
-        if (std::string(sess->GetPlayerName()) != author)
-            sess->KickPlayer();
-}
-
 /// Ban an account or ban an IP address, duration_secs if it is positive used, otherwise permban
 BanReturn World::BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_secs, std::string reason, std::string author)
 {
@@ -2081,7 +2035,7 @@ BanReturn World::BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_
     std::string safe_author = author;
     LoginDatabase.escape_string(safe_author);
 
-    QueryResult *resultAccounts = nullptr;                     //used for kicking
+    QueryResult *resultAccounts = NULL;                     //used for kicking
 
     ///- Update the database with ban information
     switch (mode)
@@ -2091,7 +2045,7 @@ BanReturn World::BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_
             resultAccounts = LoginDatabase.PQuery("SELECT id FROM account WHERE last_ip = '%s'", nameOrIP.c_str());
             LoginDatabase.PExecute("INSERT INTO ip_banned VALUES ('%s',UNIX_TIMESTAMP(),UNIX_TIMESTAMP()+%u,'%s','%s')", nameOrIP.c_str(), duration_secs, safe_author.c_str(), reason.c_str());
             if (duration_secs > 0)
-                sAccountMgr.BanIP(nameOrIP, time(nullptr) + duration_secs);
+                sAccountMgr.BanIP(nameOrIP, time(NULL) + duration_secs);
             else
                 sAccountMgr.BanIP(nameOrIP, 0xFFFFFFFF);
             break;
@@ -2129,7 +2083,7 @@ BanReturn World::BanAccount(BanMode mode, std::string nameOrIP, uint32 duration_
             LoginDatabase.PExecute("INSERT INTO account_banned (id, bandate, unbandate, bannedby, banreason, active, realm) VALUES ('%u', UNIX_TIMESTAMP(), UNIX_TIMESTAMP()+%u, '%s', '%s', '1', %u)",
                                    account, duration_secs, safe_author.c_str(), reason.c_str(), realmID);
             if (duration_secs > 0)
-                sAccountMgr.BanAccount(account, time(nullptr) + duration_secs);
+                sAccountMgr.BanAccount(account, time(NULL) + duration_secs);
             else
                 sAccountMgr.BanAccount(account, 0xFFFFFFFF);
         }
@@ -2363,8 +2317,8 @@ void World::UpdateSessions(uint32 diff)
 // This handles the issued and queued CLI/RA commands
 void World::ProcessCliCommands()
 {
-    CliCommandHolder::Print* zprint = nullptr;
-    void* callbackArg = nullptr;
+    CliCommandHolder::Print* zprint = NULL;
+    void* callbackArg = NULL;
     CliCommandHolder* command;
     while (cliCmdQueue.next(command))
     {
@@ -2640,23 +2594,6 @@ void World::LogCharacter(Player* character, const char* action)
     logStmt.Execute();
 }
 
-void World::LogCharacter(WorldSession* sess, uint32 lowGuid, std::string const& charName, const char* action)
-{
-    if (!LogsDatabase || !sWorld.getConfig(CONFIG_BOOL_LOGSDB_CHARACTERS))
-        return;
-    ASSERT(sess);
-    static SqlStatementID insLogChar;
-    SqlStatement logStmt = LogsDatabase.CreateStatement(insLogChar, "INSERT INTO logs_characters SET type=?, guid=?, account=?, name=?, ip=?, clientHash=?");
-    logStmt.addString(action);
-    logStmt.addUInt32(lowGuid);
-    logStmt.addUInt32(sess->GetAccountId());
-    logStmt.addString(charName);
-    logStmt.addString(sess->GetRemoteAddress());
-    sess->ComputeClientHash();
-    logStmt.addString(sess->GetClientHash());
-    logStmt.Execute();
-}
-
 void World::LogChat(WorldSession* sess, const char* type, std::string const& msg, PlayerPointer target, uint32 chanId, const char* chanStr)
 {
     ASSERT(sess);
@@ -2738,6 +2675,6 @@ World::ArchivedLogMessage* World::GetLog(uint32 logId, AccountTypes my_sec)
 {
     LogMessagesMap::iterator it = m_logMessages.find(logId);
     if (it == m_logMessages.end() || it->second.sec > my_sec)
-        return nullptr;
+        return NULL;
     return &(it->second);
 }

@@ -32,8 +32,6 @@
 #include "DBCStores.h"
 #include "ObjectGuid.h"
 #include "PoolManager.h"
-#include "SQLStorages.h"
-#include "Map.h"
 
 struct MapEntry;
 struct GameObjectData;
@@ -73,7 +71,7 @@ class MapPersistentState
         uint32 GetInstanceId() const { return m_instanceid; }
         uint32 GetMapId() const { return m_mapid; }
 
-        const MapEntry* GetMapEntry() const;
+        MapEntry const* GetMapEntry() const;
 
         bool IsUsedByMap() const { return m_usedByMap; }
         Map* GetMap() const { return m_usedByMap; }         // Can be NULL if map not loaded for persistent state

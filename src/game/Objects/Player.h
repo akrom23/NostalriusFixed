@@ -943,10 +943,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void SetGMVisible(bool on);
         void SetPvPDeath(bool on) { if(on) m_ExtraFlags |= PLAYER_EXTRA_PVP_DEATH; else m_ExtraFlags &= ~PLAYER_EXTRA_PVP_DEATH; }
 
-        // Cannot be detected by creature (Should be tested in AI::MoveInLineOfSight)
-        void SetCannotBeDetectedTimer(uint32 milliseconds) { m_cannotBeDetectedTimer = milliseconds; };
-        bool CanBeDetected() const override { return m_cannotBeDetectedTimer <= 0; }
-
         uint32 _playerOptions;
         bool HasOption(uint32 o) const{ return (_playerOptions & o); }
         void EnableOption(uint32 o)   { _playerOptions |= o; }
@@ -1310,7 +1306,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         /***                   SAVE SYSTEM                     ***/
         /*********************************************************/
 
-        void SaveToDB(bool online = true, bool force = false);
+        void SaveToDB(bool online = true);
         void SaveInventoryAndGoldToDB();                    // fast save function for item/money cheating preventing
         void SaveGoldToDB();
 
@@ -1384,7 +1380,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         TrainerSpellState GetTrainerSpellState(TrainerSpell const* trainer_spell) const;
         bool IsSpellFitByClassAndRace(uint32 spell_id, uint32* pReqlevel = NULL) const;
         bool IsNeedCastPassiveLikeSpellAtLearn(SpellEntry const* spellInfo) const;
-        bool IsImmuneToSpellEffect(SpellEntry const *spellInfo, SpellEffectIndex index, bool castOnSelf) const;
+        bool IsImmuneToSpellEffect(SpellEntry const* spellInfo, SpellEffectIndex index, bool castOnSelf) const;
 
         void SendProficiency(ItemClass itemClass, uint32 itemSubclassMask);
         void SendInitialSpells();
@@ -1923,10 +1919,7 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void SetClientControl(Unit* target, uint8 allowMove);
         void SetMover(Unit* target) { m_mover = target ? target : this; }
         Unit* GetMover() const { return m_mover; }
-        bool IsSelfMover() const { return m_mover == this; }// normal case for player not controlling other unit        
-        bool IsNextRelocationIgnored() const { return m_bNextRelocationsIgnored ? true : false; }
-        void SetNextRelocationsIgnoredCount(uint32 count) { m_bNextRelocationsIgnored = count; }
-        void DoIgnoreRelocation() { if (m_bNextRelocationsIgnored) --m_bNextRelocationsIgnored; }
+        bool IsSelfMover() const { return m_mover == this; }// normal case for player not controlling other unit
 
         ObjectGuid const& GetFarSightGuid() const { return GetGuidValue(PLAYER_FARSIGHT); }
 
@@ -2074,7 +2067,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
         void SetAuraUpdateMask(uint64 mask) { m_auraUpdateMask = mask; }
         Player* GetNextRandomRaidMember(float radius);
         PartyResult CanUninviteFromGroup(ObjectGuid uninvitedGuid) const;
-        void UpdateGroupLeaderFlag(const bool remove = false);
         // BattleGround Group System
         void SetBattleGroundRaid(Group *group, int8 subgroup = -1);
         void RemoveFromBattleGroundRaid();
@@ -2385,10 +2377,6 @@ class MANGOS_DLL_SPEC Player final: public Unit
 
         ReputationMgr  m_reputationMgr;
         ObjectGuid     m_selectedGobj; // For GM commands
-
-        int32 m_cannotBeDetectedTimer;
-
-        uint32 m_bNextRelocationsIgnored;
 
 public:
         /**

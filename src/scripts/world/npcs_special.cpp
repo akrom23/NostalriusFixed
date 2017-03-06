@@ -23,7 +23,6 @@ EndScriptData
 */
 
 #include "scriptPCH.h"
-#include "../kalimdor/moonglade/boss_omen.h"
 
 /* ContentData
 npc_chicken_cluck       100%    support for quest 3861 (Cluck!)
@@ -1332,9 +1331,9 @@ enum
     SPELL_CHICKEN_FURY  = 13168
 };
 
-struct npc_gnomish_battle_chickenAI : ScriptedPetAI
+struct npc_gnomish_battle_chickenAI : public ScriptedPetAI
 {
-    explicit npc_gnomish_battle_chickenAI(Creature* pCreature) : ScriptedPetAI(pCreature)
+    npc_gnomish_battle_chickenAI(Creature* pCreature) : ScriptedPetAI(pCreature)
     {
         m_creature->SetCanModifyStats(true);
 
@@ -1469,25 +1468,24 @@ CreatureAI* GetAI_npc_the_cleaner(Creature* pCreature)
 
 enum
 {
-    NPC_FIREWORK_GUY_ELUNE          = 15918,
+    NPC_FIREWORK_GUY_ELUNE = 15918,
 
-    GO_FIREWORK_LAUNCHER            = 180771,
-    GO_CLUSTER_LAUNCHER             = 180772,
-    GO_OMEN_CLUSTER_LAUNCHER        = 180874,
-    GO_FIREWORK_ROCKET_WHITE_BIG    = 180864,
+    GO_FIREWORK_LAUNCHER = 180771,
+    GO_CLUSTER_LAUNCHER = 180772,
+    GO_OMEN_CLUSTER_LAUNCHER = 180874,
+    GO_FIREWORK_ROCKET_WHITE_BIG = 180864,
 
-    SPELL_LUNAR_FORTUNE             = 26522
+    SPELL_LUNAR_FORTUNE = 26522
 };
 
-struct FireworkStruct
+struct Firework
 {
-    uint32 m_uiNpcEntry;
-    uint32 m_uiGoEntry;
-    bool m_bIsCluster;
+    uint32 npcEntry;
+    uint32 goEntry;
+    bool cluster;
 };
 
-const FireworkStruct Fireworks[] = 
-{
+static const Firework FIREWORKS[] = {
     { 15872, 180854,  true }, // Blue Firework Cluster
     { 15873, 180851,  true }, // Red Firework Cluster
     { 15874, 180855,  true }, // Green Firework Cluster
@@ -1513,98 +1511,71 @@ const FireworkStruct Fireworks[] =
     { 15915, 180864,  true }, // Large White Firework Cluster
     { 15916, 180865,  true }, // Large Yellow Firework Cluster
     { 15918, 180861,  true }, // Large Yellow Firework Cluster
+    { 0,      0, false }
 };
-
-const uint32 Launcher[] = { 180772, 180859, 180869, 180874, 180771, 180850, 180868 };
 
 struct npc_pats_firework_guyAI : ScriptedAI
 {
-    explicit npc_pats_firework_guyAI(Creature* pCreature) : ScriptedAI(pCreature)
+    const Firework* firework;
+    bool lucky;
+
+    explicit npc_pats_firework_guyAI(Creature* creature) : ScriptedAI(creature)
     {
-        npc_pats_firework_guyAI::Reset();
-        npc_pats_firework_guyAI::ResetCreature();
+        firework = FIREWORKS;
 
-        IsUsable();
-    }
-
-    bool m_bExist;
-    bool m_bisLucky;
-    bool m_bDone;
-    uint8 m_uiIndex;
-
-    void Reset() override
-    {
-
-    }
-
-    void ResetCreature() override
-    {
-        m_bExist = false;
-        m_bisLucky = false;
-        m_bDone = false;
-        m_uiIndex = 0;
-    }
-
-    void IsUsable()
-    {
-        for (uint8 i = 0; i < 25; ++i)
+        while (firework->npcEntry)
         {
-            if (Fireworks[i].m_uiNpcEntry == m_creature->GetEntry())
-            {
-                m_bExist = true;
-                m_bisLucky = m_creature->GetEntry() == NPC_FIREWORK_GUY_ELUNE;
-                m_uiIndex = i;
+            if (firework->npcEntry == m_creature->GetEntry())
                 break;
-            }
+
+            ++firework;
         }
+
+        if (!firework->npcEntry)
+            firework = nullptr;
+
+        lucky = (m_creature->GetEntry() == NPC_FIREWORK_GUY_ELUNE);
     }
+
+    void Reset() override {}
 
     void UpdateAI(const uint32 /*diff*/) override
     {
-        if (!m_bExist || m_bDone)
+        if (!firework)
             return;
-
-        for (uint8 l = 0; l < 7; ++l)
-        {
-            if (auto pGo = GetClosestGameObjectWithEntry(m_creature, Launcher[l], CONTACT_DISTANCE))
-            {
-                pGo->SendGameObjectCustomAnim(pGo->GetObjectGuid());
-                break;
-            }
-        }
 
         float x, y, z;
         m_creature->GetPosition(x, y, z);
-        m_creature->SummonGameObject(Fireworks[m_uiIndex].m_uiGoEntry, x, y, z, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1);
+        m_creature->SummonGameObject(firework->goEntry, x, y, z, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1);
 
-        if (Fireworks[m_uiIndex].m_bIsCluster)
+        if (firework->cluster)
         {
-            m_creature->SummonGameObject(Fireworks[m_uiIndex].m_uiGoEntry, x, y, z + 10.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1);
+            m_creature->SummonGameObject(firework->goEntry, x, y, z + 4.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1);
 
             for (int i = 0; i < 3; ++i)
             {
-                uint32 entry = i && m_bisLucky ? uint32(GO_FIREWORK_ROCKET_WHITE_BIG) : Fireworks[m_uiIndex].m_uiGoEntry;
+                uint32 entry = (i && lucky) ? uint32(GO_FIREWORK_ROCKET_WHITE_BIG) : firework->goEntry;
 
                 m_creature->GetNearPoint2D(x, y, i ? 2.0f : 1.0f, i * 2.0f * M_PI_F / 3.0f + M_PI_F / 2.0f);
-                m_creature->SummonGameObject(entry, x, y, z + 5.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1);
+                m_creature->SummonGameObject(entry, x, y, z + 2.0f, 0.0f, 0.0f, 0.0f, 0.0f, 0.0f, 1);
             }
         }
 
-        if (m_bisLucky)
+        if (lucky)
             m_creature->CastSpell(m_creature, SPELL_LUNAR_FORTUNE, true);
 
         if (m_creature->IsTemporarySummon())
         {
-            Player* pSummoner = m_creature->GetMap()->GetPlayer(static_cast<TemporarySummon*>(m_creature)->GetSummonerGuid());
+            Player* summoner = m_creature->GetMap()->GetPlayer(static_cast<TemporarySummon*>(m_creature)->GetSummonerGuid());
 
-            if (pSummoner)
-                pSummoner->CastedCreatureOrGO(Fireworks[m_uiIndex].m_bIsCluster ? GO_CLUSTER_LAUNCHER : GO_FIREWORK_LAUNCHER, ObjectGuid(), 0);
+            if (summoner)
+                summoner->CastedCreatureOrGO(firework->cluster ? GO_CLUSTER_LAUNCHER : GO_FIREWORK_LAUNCHER, ObjectGuid(), 0);
         }
-        
+        /*
         if (GetClosestGameObjectWithEntry(m_creature, GO_OMEN_CLUSTER_LAUNCHER, CONTACT_DISTANCE))
-            boss_omenAI::OnFireworkLaunch(m_creature);
+            boss_omenAI::Summon(m_creature);*/
 
-        m_bDone = true;
+        firework = nullptr;
     }
 };
 
@@ -1617,78 +1588,26 @@ CreatureAI* GetAI_npc_pats_firework_guy(Creature* creature)
  * Huge Firework Show support
  */
 
-const uint32 FireBoxPlayer[] = 
+static const uint32 FireBox[] = 
 {
     180854,180851,180855,180858,180857,
     180861,180862,180863,180860,180864,
     180865
 };
 
-enum FireworkColor
-{
-    COLOR_WHITE = 0,
-    COLOR_RED = 1,
-    COLOR_BLUE = 2,
-    COLOR_GREEN = 3,
-    COLOR_PURPLE = 4,
-    COLOR_YELLOW = 5
-};
-
-struct FireworkShowStruct
-{
-    uint32 entry;
-    uint8 type;
-    FireworkColor color;
-    bool big;
-};
-
-const FireworkShowStruct FireboxShow[] = 
-{
-    { 180728, 1, COLOR_WHITE,   false },
-    { 180729, 1, COLOR_WHITE,   true  },
-    { 180730, 2, COLOR_WHITE,   false },
-    { 180731, 2, COLOR_WHITE,   true  },
-    { 180703, 1, COLOR_RED,     false },
-    { 180704, 2, COLOR_RED,     false },
-    { 180707, 1, COLOR_RED,     true  },
-    { 180708, 2, COLOR_RED,     true  },
-    { 180720, 1, COLOR_BLUE,    false },
-    { 180721, 2, COLOR_BLUE,    false },
-    { 180722, 1, COLOR_BLUE,    true  },
-    { 180723, 2, COLOR_BLUE,    true  },
-    { 180724, 1, COLOR_GREEN,   false },
-    { 180725, 2, COLOR_GREEN,   true  },
-    { 180726, 1, COLOR_GREEN,   true  },
-    { 180727, 2, COLOR_GREEN,   false },
-    { 180733, 2, COLOR_PURPLE,  true  }, // missing one purple?
-    { 180740, 2, COLOR_PURPLE,  false },
-    { 180741, 1, COLOR_PURPLE,  true  },
-    { 180736, 1, COLOR_YELLOW,  false },
-    { 180737, 1, COLOR_YELLOW,  true  },
-    { 180738, 2, COLOR_YELLOW,  false },
-    { 180739, 2, COLOR_YELLOW,  true  },
-};
-
-#define INTENSITY 7
-
 struct npc_holiday_firestarterAI : ScriptedAI
 {
-    explicit npc_holiday_firestarterAI(Creature* pCreature, bool regular) : ScriptedAI(pCreature)
+    explicit npc_holiday_firestarterAI(Creature* pCreature) : ScriptedAI(pCreature)
     {
         npc_holiday_firestarterAI::Reset();
-        npc_holiday_firestarterAI::ResetCreature();
-
-        m_bRegular = regular;
     }
-
-    bool m_bRegular;
 
     void Reset() override
     {
 
     }
 
-    void DoRegularFirework(uint8 amount = 1) const
+    void DoFirework(uint8 amount = 1) const
     {
         float x, y, z;
         m_creature->GetPosition(x, y, z);
@@ -1696,53 +1615,29 @@ struct npc_holiday_firestarterAI : ScriptedAI
         for (uint8 i = 0; i < amount; ++i)
         {
             m_creature->SummonGameObject(
-                FireBoxPlayer[urand(0, 10)],
+                FireBox[urand(0, 10)],
                 x + frand(-150, 150),
                 y + frand(-150, 150),
                 z + frand(30, 90),
+                //frand(0, 2 * M_PI_F),
+                //frand(0, 2 * M_PI_F),
+                //frand(0, 2 * M_PI_F),
+                //frand(0, 2 * M_PI_F),
+                //frand(0, 2 * M_PI_F),
                 0, 0, 0, 0, 0,
                 1);
         }
     }
 
-    void DoShowFirework(uint8 amount = 1) const
+    void UpdateAI(const uint32 uiDiff) override
     {
-        float x, y, z;
-        m_creature->GetPosition(x, y, z);
-
-        for (uint8 i = 0; i < amount; ++i)
-        {
-            if (auto pGo = m_creature->SummonGameObject(
-                FireboxShow[urand(0, 22)].entry,
-                x + frand(-150, 150),
-                y + frand(-150, 150),
-                z + frand(30, 90),
-                frand(0, M_PI_F),
-                0, 0, 0, 0,
-                1))
-            {
-                pGo->UseDoorOrButton();
-            }
-        }
-    }
-
-    void UpdateAI(const uint32 /*uiDiff*/) override
-    {
-        if (m_bRegular)
-            DoRegularFirework(INTENSITY);
-        else
-            DoShowFirework(INTENSITY);
+        DoFirework(10);
     }
 };
 
-CreatureAI* GetAI_npc_firestarter_show(Creature* pCreature)
+CreatureAI* GetAI_npc_holiday_firestarter(Creature* pCreature)
 {
-    return new npc_holiday_firestarterAI(pCreature, false);
-}
-
-CreatureAI* GetAI_npc_firestarter_regular(Creature* pCreature)
-{
-    return new npc_holiday_firestarterAI(pCreature, true);
+    return new npc_holiday_firestarterAI(pCreature);
 }
 
 /*
@@ -2210,324 +2105,9 @@ struct npc_goblin_land_mineAI : ScriptedAI
     }
 };
 
-CreatureAI* GetAI_npc_goblin_land_mine(Creature * pCreature)
+CreatureAI * GetAI_npc_goblin_land_mine(Creature * pCreature)
 {
     return new npc_goblin_land_mineAI(pCreature);
-}
-
-/*
- * Critter
- */
-
-enum
-{
-    ESCAPE_TIMER    = 12000
-};
-
-struct npc_critterAI : ScriptedAI
-{
-    explicit npc_critterAI(Creature* pCreature) : ScriptedAI(pCreature)
-    {
-        npc_critterAI::Reset();
-    }
-
-    uint32 m_uiCombatTimer;
-
-    void Reset() override
-    {
-        m_uiCombatTimer = ESCAPE_TIMER;
-    }
-
-    void AttackStart(Unit* /*pWho*/) override {}
-
-    void DamageTaken(Unit* pWho, uint32& uiDamage) override
-    {
-        if (uiDamage < m_creature->GetHealth())
-        {
-            m_creature->GetMotionMaster()->MoveFleeing(pWho, ESCAPE_TIMER);
-            m_uiCombatTimer = ESCAPE_TIMER;
-        }
-    }
-
-    void SpellHit(Unit* pWho, const SpellEntry* pSpell) override
-    {
-        if (SpellAuraHolder* holder = m_creature->GetSpellAuraHolder(pSpell->Id))
-        {
-            if (!holder->IsPositive())
-            {
-                m_creature->GetMotionMaster()->MoveFleeing(pWho, ESCAPE_TIMER);
-                m_uiCombatTimer = ESCAPE_TIMER;
-            }
-        }
-    }
-
-    void UpdateAI(const uint32 diff) override
-    {
-        if (m_creature->isInCombat())
-        {
-            if (m_uiCombatTimer <= diff)
-            {
-                EnterEvadeMode();
-                m_uiCombatTimer = ESCAPE_TIMER;
-            }
-            else
-                m_uiCombatTimer -= diff;
-        }
-    }
-};
-
-CreatureAI* GetAI_npc_critter(Creature* pCreature)
-{
-    return new npc_critterAI(pCreature);
-}
-
-/*
- * Curing the Sick
- */
-
-enum
-{
-    SPELL_APPLY_SALVE           = 19512,
-    SPELL_SICKY_CRITTER_AURA    = 19502,
-
-    NPC_SICKLY_DEER             = 12298,
-    NPC_SICKLY_GAZELLE          = 12296,
-
-    NPC_CURED_DEER              = 12299,
-    NPC_CURED_GAZELLE           = 12297,
-
-    MODEL_CURED_DEER            = 347,
-    MODEL_CURED_GAZELLE         = 1547,
-};
-
-struct npc_sickly_critterAI : npc_critterAI
-{
-    explicit npc_sickly_critterAI(Creature* pCreature) : npc_critterAI(pCreature)
-    {
-        npc_sickly_critterAI::Reset();
-        npc_sickly_critterAI::ResetCreature();
-    }
-
-    bool m_bIsHit;
-    bool m_bModify;
-    uint32 m_uiTimer;
-    Team team;
-    ObjectGuid m_PlayerGuid;
-
-    void Reset() override
-    {
-
-    }
-
-    void ResetCreature() override
-    {
-        m_bIsHit = false;
-        m_bModify = false;
-        m_uiTimer = 1500;
-    }
-
-    void SpellHit(Unit* pCaster, const SpellEntry* pSpell) override
-    {
-        if (pSpell->Id != SPELL_APPLY_SALVE)
-        {
-            npc_critterAI::SpellHit(pCaster, pSpell);
-            return;
-        }
-
-        if (m_bIsHit)
-            return;
-
-        auto pPlayer = pCaster->ToPlayer();
-
-        if (!pPlayer)
-            return;
-
-        m_PlayerGuid = pPlayer->GetObjectGuid();
-
-        if (m_creature->GetEntry() != NPC_SICKLY_DEER && m_creature->GetEntry() != NPC_SICKLY_GAZELLE)
-            return;
-
-        team = pPlayer->GetTeam();
-        m_bModify = true;
-        
-        m_creature->GetMotionMaster()->Clear();
-        m_creature->GetMotionMaster()->MoveFleeing(pPlayer);
-        m_creature->ForcedDespawn(10 * IN_MILLISECONDS);
-
-        m_bIsHit = true;
-    }
-
-    void UpdateAI(uint32 const uiDiff) override
-    {
-        if (m_bModify)
-        {
-            if (m_uiTimer < uiDiff)
-            {
-                switch (team)
-                {
-                case ALLIANCE:
-                    m_creature->SetEntry(NPC_CURED_DEER);
-                    m_creature->SetDisplayId(MODEL_CURED_DEER);
-                    break;
-                case HORDE:
-                    m_creature->SetEntry(NPC_CURED_GAZELLE);
-                    m_creature->SetDisplayId(MODEL_CURED_GAZELLE);
-                    break;
-                }
-
-                m_creature->RemoveAurasDueToSpell(SPELL_SICKY_CRITTER_AURA);
-                m_bModify = false;
-
-                if (auto pPlayer = m_creature->GetMap()->GetPlayer(m_PlayerGuid))
-                    pPlayer->RewardPlayerAndGroupAtCast(m_creature, SPELL_APPLY_SALVE);
-            }
-            else
-                m_uiTimer -= uiDiff;
-        }
-
-        npc_critterAI::UpdateAI(uiDiff);
-    }
-};
-
-CreatureAI* GetAI_npc_sickly_critter(Creature* pCreature)
-{
-    return new npc_sickly_critterAI(pCreature);
-}
-
-/*
- * Goblin Bomb Dispenser
- */
-
-enum
-{
-    SPELL_EXPLOSION         = 13259,
-    SPELL_PET_BOMB_PASSIVE  = 13260,
-    SPELL_MALFUNCTION_EXPL  = 13261,
-    SPELL_QUIET_SUICIDE     = 3617
-};
-
-struct npc_goblin_bomb_dispenserAI : ScriptedPetAI
-{
-    explicit npc_goblin_bomb_dispenserAI(Creature* pCreature) : ScriptedPetAI(pCreature)
-    {
-        m_creature->SetCanModifyStats(true);
-
-        if (m_creature->GetCharmInfo())
-            m_creature->GetCharmInfo()->SetReactState(REACT_AGGRESSIVE);
-
-        npc_goblin_bomb_dispenserAI::Reset();
-        npc_goblin_bomb_dispenserAI::ResetCreature();
-    }
-
-    bool m_bExploded;
-    uint32 m_uiAliveTimer;
-
-    void Reset() override
-    {
-
-    }
-
-    void ResetCreature() override
-    {
-        m_bExploded = false;
-        m_uiAliveTimer = MINUTE * IN_MILLISECONDS;
-
-        m_creature->CastSpell(m_creature, SPELL_PET_BOMB_PASSIVE, true);
-    }
-
-    void JustDied(Unit* /*pKiller*/) override
-    {
-        if (auto pPet = m_creature->ToPet())
-            pPet->DelayedUnsummon(5000, PET_SAVE_AS_DELETED);
-    }
-
-    void UpdateAI(const uint32 uiDiff) override
-    {
-        if (!m_bExploded)
-        {
-            if (m_uiAliveTimer <= uiDiff)
-            {
-                m_creature->CastSpell(m_creature, SPELL_EXPLOSION, true);
-                m_bExploded = true;
-            }
-            else
-                m_uiAliveTimer -= uiDiff;
-        
-            ScriptedPetAI::UpdateAI(uiDiff);            
-        }
-    }
-};
-
-CreatureAI* GetAI_npc_goblin_bomb_dispenser(Creature* pCreature)
-{
-    return new npc_goblin_bomb_dispenserAI(pCreature);
-}
-
-/*
- * Explosive Sheep
- */
-
-enum
-{
-    SPELL_EXPLOSIVE_SHEEP_PASSIVE   = 4051,
-    SPELL_EXPLOSIVE_SHEEP           = 4050
-};
-
-struct npc_explosive_sheepAI : ScriptedPetAI
-{
-    explicit npc_explosive_sheepAI(Creature* pCreature) : ScriptedPetAI(pCreature)
-    {
-        m_creature->SetCanModifyStats(true);
-
-        if (m_creature->GetCharmInfo())
-            m_creature->GetCharmInfo()->SetReactState(REACT_AGGRESSIVE);
-
-        npc_explosive_sheepAI::Reset();
-        npc_explosive_sheepAI::ResetCreature();
-    }
-
-    bool m_bExploded;
-    uint32 m_uiAliveTimer;
-
-    void Reset() override
-    {
-
-    }
-
-    void ResetCreature() override
-    {
-        m_bExploded = false;
-        m_uiAliveTimer = 3 * MINUTE * IN_MILLISECONDS;
-
-        m_creature->CastSpell(m_creature, SPELL_EXPLOSIVE_SHEEP_PASSIVE, true);
-    }
-
-    void JustDied(Unit* /*pKiller*/) override
-    {
-        if (auto pPet = m_creature->ToPet())
-            pPet->DelayedUnsummon(5000, PET_SAVE_AS_DELETED);
-    }
-
-    void UpdateAI(const uint32 uiDiff) override
-    {
-        if (!m_bExploded)
-        {
-            if (m_uiAliveTimer <= uiDiff)
-            {
-                m_creature->CastSpell(m_creature, SPELL_EXPLOSIVE_SHEEP, true);
-                m_bExploded = true;
-            }
-            else
-                m_uiAliveTimer -= uiDiff;
-
-            ScriptedPetAI::UpdateAI(uiDiff);
-        }
-    }
-};
-
-CreatureAI* GetAI_npc_explosive_sheep(Creature* pCreature)
-{
-    return new npc_explosive_sheepAI(pCreature);
 }
 
 void AddSC_npcs_special()
@@ -2615,13 +2195,8 @@ void AddSC_npcs_special()
     newscript->RegisterSelf();
 
     newscript = new Script;
-    newscript->Name = "npc_firestarter_regular";
-    newscript->GetAI = &GetAI_npc_firestarter_regular;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_firestarter_show";
-    newscript->GetAI = &GetAI_npc_firestarter_show;
+    newscript->Name = "npc_holiday_firestarter";
+    newscript->GetAI = &GetAI_npc_holiday_firestarter;
     newscript->RegisterSelf();
 
     newscript = new Script;
@@ -2648,25 +2223,5 @@ void AddSC_npcs_special()
     newscript = new Script;
     newscript->Name = "npc_goblin_land_mine";
     newscript->GetAI = &GetAI_npc_goblin_land_mine;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_critter";
-    newscript->GetAI = &GetAI_npc_critter;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_sickly_critter";
-    newscript->GetAI = &GetAI_npc_sickly_critter;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_goblin_bomb_dispenser";
-    newscript->GetAI = &GetAI_npc_goblin_bomb_dispenser;
-    newscript->RegisterSelf();
-
-    newscript = new Script;
-    newscript->Name = "npc_explosive_sheep";
-    newscript->GetAI = &GetAI_npc_explosive_sheep;
     newscript->RegisterSelf();
 }
